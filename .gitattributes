@@ -22,5 +22,12 @@
 # verbatim on every platform, no EOL translation, so the digest is stable.
 # The .onnx and .npy already store verbatim (Git detected them binary); listing
 # the whole trees here is harmless and documents the intent.
-backend/models/**        -text
-backend/data/splits/**   -text
+#
+# Every tree here is consumed by a byte-exact hash somewhere:
+#   backend/models/**            metrics.json / CHECKSUMS.json  (D21)
+#   backend/data/splits/**       partition MANIFEST checksums_sha256
+#   backend/app/rag/corpus/**    loader.corpus_hash() vs chunk_manifest.json
+#                                (retriever refuses to load on a mismatch)
+backend/models/**            -text
+backend/data/splits/**       -text
+backend/app/rag/corpus/**    -text
