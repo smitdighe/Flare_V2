@@ -1,0 +1,245 @@
+# Flare backend CI. PLAN §13.2.
+#
+# NINE CHECKS, and every one of them is runnable locally by the same command
+# this file uses — `make check` / `make ci`, or `./make.ps1 ci` on Windows. A
+# check that only exists inside a workflow file is a check nobody can reproduce
+# when it goes red at 2am before a demo.
+#
+# Every check has also been PROVEN to fail on a deliberately broken input:
+# `tests/ci/test_checks_fail_on_broken_input.py` overlaps a row, corrupts a
+# checksum, plants a label string and commits a key, and asserts the specific
+# check goes red each time. A check that has never failed is a check you cannot
+# trust.
+
+name: CI
+
+on:
+  push:
+    branches: [main, backend, frontend]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.13"
+  # The suite pins its own environment in tests/conftest.py before any app
+  # import, but a runner with a stray value set would otherwise be a difference
+  # between CI and a workstation.
+  FLARE_DISABLE_ENV_FILE: "1"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1-3. ruff, mypy, pytest
+  # ---------------------------------------------------------------------------
+  quality:
+    name: lint, types, tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,ml]"
+
+      # 1. ruff — CONFIG ONLY, NEVER --fix. A CI job that rewrites the tree it
+      #    is checking reports on code that is not the code under review.
+      # `ruff format --check` is deliberately absent. PLAN §13.2 names ruff
+      # the LINTER; a formatter gate is a different decision and adding one
+      # here would demand reformatting 107 files written across Phases 1-6 to
+      # a style nobody chose. Recorded rather than done.
+      - name: ruff (lint)
+        run: python -m ruff check .
+
+      # 2. mypy
+      - name: mypy
+        run: python -m mypy app scripts
+
+      # 3. pytest, warnings-as-errors (pyproject: filterwarnings = ["error", ...])
+      #    The load layer is excluded here and runs in its own job so a slow
+      #    layer never hides behind a fast one's timing.
+      - name: pytest
+        run: python -m pytest -q -m "not load" --junitxml=build/pytest.xml
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-report
+          path: backend/build/pytest.xml
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # 4-8. the data and artifact checks
+  # ---------------------------------------------------------------------------
+  integrity:
+    name: partitions, artifacts, skew, label leak, secrets
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The secret scan asks `git ls-files` what is TRACKED, and a shallow
+          # clone still answers that correctly — but the full history is what
+          # makes a later "was this ever committed" question answerable.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,ml]"
+
+      # 4. Three-way disjointness — IDs pairwise disjoint AND zero shared
+      #    feature vectors. The second half is the one that caught the real
+      #    defect: id-level disjointness passed while 62 rows were shared
+      #    (PLAN §7.3b).
+      - name: Three-way disjointness (I15)
+        run: python -m scripts.ci.run disjointness
+
+      # 5. Artifact integrity — classifier booster, feature schema, MiniLM
+      #    weights and index all verify against committed checksums, and the
+      #    classifier's feature schema matches the serving code's fingerprint.
+      - name: Artifact integrity (D21/I16)
+        run: python -m scripts.ci.run artifact_integrity
+
+      # 6. Train/serve skew — one fixture row through both feature builders
+      #    must produce identical vectors. This caught the pandas read-only
+      #    array bug that was silently failing every single-row inference.
+      - name: Train/serve skew
+        run: python -m scripts.ci.run train_serve_skew
+
+      # 7. Label leak — dump the constructed prompt corpus, grep it for
+      #    ground-truth label strings and class names, fail on a hit. The dump
+      #    is uploaded so the claim is AUDITABLE rather than asserted.
+      - name: Label leak (I4)
+        run: python -m scripts.ci.run label_leak
+
+      - name: Upload the prompt corpus
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prompt-corpus
+          path: backend/build/prompt_corpus.json
+          if-no-files-found: error
+
+      # 8. Secret scan — across the tree, including .env absence and no key
+      #    material in committed files or trace fixtures.
+      - name: Secret scan
+        run: python -m scripts.ci.run secret_scan gitignore
+
+      # PLAN §14 — the .env.example is COMPLETE and accurate, in both
+      # directions: every setting the code reads is documented, and nothing is
+      # documented that the code does not read. A cold clone can only configure
+      # what the template names.
+      - name: .env.example completeness
+        run: python -m scripts.ci.run env_example
+
+      - name: Assert no .env is tracked
+        working-directory: .
+        run: |
+          if git ls-files --error-unmatch backend/.env >/dev/null 2>&1; then
+            echo "::error::backend/.env is tracked by git"
+            exit 1
+          fi
+          tracked_db=$(git ls-files '*.db' '*.sqlite' '*.sqlite3')
+          if [ -n "$tracked_db" ]; then
+            echo "::error::database file(s) tracked: $tracked_db"
+            exit 1
+          fi
+          echo "no .env and no database file is tracked"
+
+  # ---------------------------------------------------------------------------
+  # 9. cold-clone smoke test
+  # ---------------------------------------------------------------------------
+  cold-clone:
+    name: cold-clone smoke test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      # A genuinely fresh checkout: no cached artifacts, no warm model cache,
+      # nothing this repository did not commit.
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          # No pip cache here on purpose. The point of this job is that a
+          # machine which has never seen the project can bring it up.
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,ml]"
+
+      # Migrate from zero, load both ML artifacts WITH THE NETWORK BLOCKED, and
+      # boot the app and hit /health. The network block is the load-bearing
+      # part: an artifact that downloads itself on first use passes forever on
+      # a warm machine and fails the first time it runs anywhere else, which is
+      # exactly how the prior build's RAG path died on a cold clone.
+      - name: Cold-clone smoke test
+        run: python -m scripts.ci.smoke
+
+  # ---------------------------------------------------------------------------
+  # the load layer, on its own so its timing never hides behind a fast job
+  # ---------------------------------------------------------------------------
+  load:
+    name: load
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,ml]"
+      - name: pytest -m load
+        run: python -m pytest -q -m load
+
+  # ---------------------------------------------------------------------------
+  # one green light for branch protection to require
+  # ---------------------------------------------------------------------------
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    needs: [quality, integrity, cold-clone, load]
+    if: always()
+    steps:
+      - name: Report
+        run: |
+          echo "quality:    ${{ needs.quality.result }}"
+          echo "integrity:  ${{ needs.integrity.result }}"
+          echo "cold-clone: ${{ needs.cold-clone.result }}"
+          echo "load:       ${{ needs.load.result }}"
+          if [ "${{ needs.quality.result }}" != "success" ] \
+            || [ "${{ needs.integrity.result }}" != "success" ] \
+            || [ "${{ needs.cold-clone.result }}" != "success" ] \
+            || [ "${{ needs.load.result }}" != "success" ]; then
+            echo "::error::one or more CI jobs failed"
+            exit 1
+          fi
+          echo "all CI jobs passed"
