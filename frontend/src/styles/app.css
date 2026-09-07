@@ -1,0 +1,163 @@
+@layer components {
+  .loading-bar::after { display: none; }
+
+  .drawer-enter {
+    animation: drawer-enter 420ms var(--ease-out-soft) both;
+  }
+
+  .drawer-section {
+    animation: drawer-section-enter 420ms var(--ease-out-soft) both;
+    animation-delay: calc(var(--section-index, 0) * 75ms + 80ms);
+  }
+
+  .pipeline-stage {
+    animation: pipeline-stage-enter 360ms var(--ease-out-soft) both;
+    animation-delay: calc(var(--stage-index, 0) * 110ms + 120ms);
+  }
+
+  .pipeline-stage[data-complete="true"] > span:first-child {
+    animation: stage-confirm 1.8s ease-in-out infinite;
+    animation-delay: calc(var(--stage-index, 0) * 180ms);
+  }
+
+  .page-enter {
+    animation: page-enter 420ms var(--ease-out-soft) both;
+  }
+
+  .alert-enter {
+    animation: alert-enter 420ms var(--ease-out-soft) both;
+  }
+
+  .topology-link {
+    stroke-dashoffset: 0;
+    animation: topology-dash 6s linear infinite;
+    animation-delay: var(--link-delay, 0ms);
+  }
+
+  .topology-route {
+    stroke-dashoffset: 0;
+    animation: topology-route 2.8s linear infinite;
+  }
+
+  .topology-node {
+    transform-origin: center;
+    animation: topology-node 3.2s ease-in-out infinite;
+    animation-delay: var(--node-delay, 0ms);
+  }
+
+  .topology-focus {
+    animation: focus-chip 420ms var(--ease-out-soft) both;
+  }
+
+  .telemetry-sparkline .sparkline-path {
+    stroke-dasharray: 360;
+    stroke-dashoffset: 360;
+    animation: sparkline-draw 1.1s var(--ease-out-soft) forwards, sparkline-breathe 3.8s ease-in-out 1.2s infinite;
+  }
+
+  .telemetry-sparkline .sparkline-endpoint {
+    transform-origin: center;
+    animation: endpoint-beat 1.8s ease-in-out infinite;
+  }
+
+  .metric-block .metric-number {
+    animation: metric-settle 800ms var(--ease-out-soft) both;
+  }
+
+  .signal-grid:hover > .scanlines,
+  .signal-grid:focus-within > .scanlines {
+    animation-duration: 8s;
+  }
+
+  .stage-inspector-layer, .command-palette-layer { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 20px; }
+  .stage-inspector-backdrop, .command-palette-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.78); backdrop-filter: blur(8px); }
+  .stage-inspector, .command-palette { position: relative; width: min(100%, 620px); overflow: hidden; border: 1px solid var(--border); background: var(--card); box-shadow: 22px 22px 0 oklch(0.78 0.175 62 / 10%), 0 28px 80px rgba(0, 0, 0, 0.6); animation: inspector-enter 420ms var(--ease-out-soft) both; }
+  .command-palette { width: min(100%, 660px); align-self: start; margin-top: 12vh; }
+  .command-row { transition: background-color 120ms ease, transform 120ms var(--ease-out-soft); }
+  .command-row:hover, .command-row:focus-visible { background: oklch(0.78 0.175 62 / 8%); outline: none; transform: translateX(4px); }
+  .drawer-section-toggle { transition: color 120ms ease; }
+  .drawer-section-toggle:hover { color: var(--foreground); }
+  .topology-hit { z-index: 2; transform-origin: center; transition: filter 120ms ease; }
+  .topology-hit:hover, .topology-hit:focus-visible { filter: drop-shadow(0 0 7px oklch(0.78 0.175 62 / 0.6)); outline: none; }
+  .topology-hit:hover .topology-node, .topology-hit:focus-visible .topology-node { transform: scale(1.12); }
+  .three-topology-layer + svg { z-index: 1; pointer-events: none; }
+}
+
+@keyframes drawer-enter {
+  from { opacity: 0; transform: translate3d(22px, 0, 0); clip-path: inset(0 0 0 8%); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); clip-path: inset(0 0 0 0); }
+}
+
+@keyframes drawer-section-enter {
+  from { opacity: 0; transform: translate3d(14px, 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes pipeline-stage-enter {
+  from { opacity: 0; transform: translate3d(-8px, 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes stage-confirm {
+  0%, 72%, 100% { box-shadow: 0 0 0 0 oklch(0.78 0.175 62 / 0); }
+  18% { box-shadow: 0 0 0 5px oklch(0.78 0.175 62 / 14%); }
+}
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translate3d(0, 12px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes alert-enter {
+  from { opacity: 0; transform: translate3d(0, -8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes topology-dash {
+  to { stroke-dashoffset: -18; }
+}
+
+@keyframes topology-route {
+  0% { stroke-dashoffset: 16; opacity: 0.25; }
+  38% { opacity: 1; }
+  100% { stroke-dashoffset: -24; opacity: 0.28; }
+}
+
+@keyframes topology-node {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.78 0.175 62 / 0), inset 0 0 0 oklch(0.78 0.175 62 / 0); }
+  46% { box-shadow: 0 0 0 5px oklch(0.78 0.175 62 / 5%), inset 0 0 14px oklch(0.78 0.175 62 / 8%); }
+}
+
+@keyframes focus-chip {
+  from { opacity: 0; transform: translate3d(-8px, 4px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes sparkline-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes sparkline-breathe {
+  0%, 100% { filter: drop-shadow(0 0 0 oklch(0.78 0.175 62 / 0)); }
+  50% { filter: drop-shadow(0 0 5px oklch(0.78 0.175 62 / 30%)); }
+}
+
+@keyframes endpoint-beat {
+  0%, 100% { opacity: 0.65; transform: scale(0.88); }
+  45% { opacity: 1; transform: scale(1.18); }
+}
+
+@keyframes metric-settle {
+  from { opacity: 0; transform: translate3d(-6px, 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes inspector-enter {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pointer-spotlight::before, .shader-backdrop, .particle-field { display: none; }
+  .flare-logo-frame, .nav-link, .preview-row, .command-row, .topology-hit { transition: none; }
+}
