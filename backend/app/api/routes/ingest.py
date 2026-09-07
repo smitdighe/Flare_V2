@@ -82,12 +82,17 @@ class EveEvent(BaseModel):
 
     **`extra="ignore"` is the only implementable rule here, and it was measured
     rather than assumed.** Against the 107 real alert records from a Suricata
-    8.0.6 run, `extra="forbid"` rejects **107 of 107**: real records carry 22
-    distinct top-level keys (`flow_id`, `in_iface`, `pkt_src`, `ip_v`,
-    `app_proto`, `direction`, `flow`, `metadata`, `tx_id`, `ts_progress`,
-    `tc_progress`, `http`, `files`, `tls`, `pcap_cnt`, …) against the nine this
-    model names. A reject-on-unknown endpoint cannot ingest live Suricata output
-    at all, and would break again on the next version bump.
+    8.0.6 run, `extra="forbid"` rejects **107 of 107**: those records carry 22
+    distinct top-level keys against the eight this model names, and the 14 it
+    does not name are `app_proto`, `direction`, `files`, `flow`, `flow_id`,
+    `http`, `ip_v`, `metadata`, `pcap_cnt`, `pkt_src`, `tc_progress`, `tls`,
+    `ts_progress` and `tx_id`. A reject-on-unknown endpoint cannot ingest live
+    Suricata output at all, and would break again on the next version bump.
+
+    That list is the offline-pcap set and is exhaustive for it. A capture taken
+    off a live interface adds at least `in_iface`, which pcap mode never emits —
+    so the real key set is open-ended in practice, which is the argument for
+    `ignore` rather than a longer allowlist.
 
     **This is not a weaker check, it is a differently-scoped one.** Every field
     the normalizer reads is typed and bounded, and a malformed value in one of

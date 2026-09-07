@@ -250,6 +250,34 @@ class KeyPool:
             if key.dead
         }
 
+    @property
+    def unprobed_keys(self) -> list[str]:
+        """Keys this process has never actually used. PLAN D39.
+
+        THE POINT: selection is sticky, so a healthy `dev` key means `reserved`
+        and `spare` are never touched — and a key that has never been called
+        cannot have been rejected, so it reports `dead=false` for the same
+        reason an unopened envelope reports no bad news. A revoked `reserved`
+        key is indistinguishable from a working one until something calls it.
+
+        `/health/deep` probes ONE key per provider by design (it spends real
+        quota), so it cannot close this gap and must not be read as if it had.
+        `python -m scripts.verify_keys` is the deliberate all-keys check;
+        run it before a rehearsal and before demo day.
+        """
+        return [key.key_id for key in self._keys if key.calls == 0]
+
+    def keys_for_probe(self) -> list[tuple[str, str]]:
+        """(label, secret) for every key, dead ones included.
+
+        For `scripts.verify_keys` ONLY — it is the one caller that deliberately
+        wants to spend a request on each key rather than on the pool's choice.
+        Nothing in the request path may use this: it hands out secrets outside
+        the `Lease` discipline, and the pool cannot then guarantee that a key's
+        material was only ever alive for the duration of one call.
+        """
+        return [(key.key_id, key.secret) for key in self._keys]
+
     def snapshot(self) -> list[dict[str, object]]:
         """Health view. Labels and counters only — no secrets, ever (I16)."""
         now = time.monotonic()
@@ -262,6 +290,12 @@ class KeyPool:
                 # cooling=false: it is not waiting for a window, it is gone.
                 "dead": key.dead,
                 "dead_reason": key.dead_reason,
+                # PLAN D39 — `dead=False` on a key with no calls means NOT YET
+                # ASKED, not "verified working". Sticky selection leaves
+                # `reserved` and `spare` untouched by design, so the health
+                # screen must not let three configured keys read as three
+                # proven ones. See `unprobed_keys`.
+                "probed": key.calls > 0,
                 "cooling": not key.dead and not key.available(now),
                 "cooling_for_seconds": (
                     0.0 if key.dead else round(max(key.cooling_until - now, 0.0), 1)

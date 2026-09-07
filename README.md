@@ -765,9 +765,11 @@ Raise `--batch` before raising either limit.
 
 The whole chain was run end to end, not asserted: Suricata 8.0.6 RELEASE
 (official `jasonish/suricata` container) with ET Open rules via `suricata-update`
-— 68,625 rules, 52,672 enabled — against `smallFlows.pcap` (14,261 packets),
-producing 2,075 EVE records of which 107 were alerts, forwarded by
-`eve_forwarder.py` into a running server with replay going the whole time.
+— 68,625 rules, 52,672 enabled, a second pull two rules newer than the
+68,623 / 52,670 that produced the committed sample — against `smallFlows.pcap`
+(14,261 packets), producing 2,075 EVE records of which 107 were alerts,
+forwarded by `eve_forwarder.py` into a running server with replay going the
+whole time.
 
 - **107 / 107** alerts reached the pipeline and persisted with `source="live_demo"`, in a **single** forwarder pass of 42 batches, with **zero** schema rejections and **zero** 429s
 - **107 / 107** carry a complete seven-node trace whose `classify` entry names the D25 reason
@@ -785,6 +787,21 @@ interaction with the ingest budget was undocumented and not guessable.
 prove that `nmap`, `hydra`, `hping3` or `sqlmap` against a target box will trip
 an ET rule — default ET Open rules do not necessarily fire on a low-rate toy
 attack. That rehearsal is a separate, open task and is the top demo risk.
+
+**That pcap is from 2011, and so are the sample's timestamps.**
+`smallFlows.pcap` is the public tcpreplay capture, taken 2011-01-25, and
+Suricata in offline mode stamps every event with the packet's own time from the
+pcap header rather than wall-clock time. The committed
+`backend/data/datasets/suricata_eve_sample.json` therefore spans a 4m46s window
+in January 2011. The records are genuine engine output over a genuine capture —
+old, not synthetic. Worth knowing alongside that: `parse_eve_record` passes the
+record's own timestamp straight through, where `parse_cicids_row` takes a
+caller-stamped arrival time and parks the 2017 capture time in `captured_at`, so
+the EVE path has no arrival-time split and these records would render as some
+fifteen years old. Nothing loads the file today — `read_eve_file` has no caller
+and the live path is fed by the forwarder, not from disk — so it is a reference
+artifact rather than a demo input. A sample that should render fresh has to come
+from a fresh capture; restamping these would make the file a fabrication.
 
 ---
 
@@ -973,7 +990,9 @@ Flare_V2/
 │   ├── data/
 │   │   ├── splits/                # train 5,400 / eval 1,800 / replay 1,800 + MANIFEST.json
 │   │   ├── eval/                  # n80, n300, n300_postadjudication, latest — all published
-│   │   ├── datasets/              # suricata_eve_sample.json (107 real Suricata 8.0.6 alerts)
+│   │   ├── datasets/              # suricata_eve_sample.json (107 real Suricata 8.0.6 alerts
+│   │   │                          #   over smallFlows.pcap; 2011 stamps are the pcap's own.
+│   │   │                          #   Reference artifact — no code loads it)
 │   │   ├── retrieval_labels.json  # 18 hand-labelled retrieval pairs
 │   │   └── PROVENANCE.md          # Dataset provenance, defect list, live-chain verification
 │   ├── models/                    # 28 MB, COMMITTED so a cold clone needs no network

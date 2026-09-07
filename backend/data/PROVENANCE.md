@@ -269,10 +269,11 @@ Suricata 8.0.6**, not hand-written.
 | | |
 |---|---|
 | Engine | Suricata 8.0.6 RELEASE, official `jasonish/suricata` container |
-| Rules | ET Open via `suricata-update`, 68,623 rules, 52,670 enabled |
+| Rules | ET Open via `suricata-update`, 68,623 rules, 52,670 enabled — the pull made for this run; the later Phase 4a run pulled again and saw 68,625 / 52,672 |
 | Input | `smallFlows.pcap` — the public tcpreplay sample capture, 14,261 packets |
 | Command | `suricata -r smallFlows.pcap -l out -k none` |
 | Output | 107 `alert` events; 40 non-alert events kept so the reader's skip path is exercised against real input |
+| On disk | 147 line-delimited JSON records, compact separators, UTF-8, no BOM, trailing newline |
 
 Rules that fired include `ET CHAT Skype User-Agent detected`, `GPL CHAT MSN
 user search` and Suricata's own stream and HTTP anomaly rules. The reader
@@ -282,6 +283,37 @@ parses all 107 into `NormalizedAlert`s with `features` empty and
 This closes the open item in PLAN §21 and de-risks the live-injection phase
 (§4.4a): the Suricata → eve.json → parser path is now proven end to end rather
 than assumed.
+
+### The sample's timestamps are from 2011, and that is the pcap's own clock
+
+Every record in the file is stamped between `2011-01-25T18:52:22.484409+0000`
+and `2011-01-25T18:57:08.256589+0000` — a 4m46s window. Those are
+`smallFlows.pcap`'s real capture times. `smallFlows.pcap` is the public
+tcpreplay sample capture, taken in 2011, and Suricata in offline mode stamps
+each event with the packet's own timestamp from the pcap header rather than
+with wall-clock time. That is correct behaviour, and it is the whole reason the
+dates are what they are. **The records are genuine engine output over a genuine
+capture; nothing here was written by hand and no timestamp was rewritten.** The
+sample is old, not synthetic, and the two are different claims.
+
+**The EVE path does not stamp an arrival time, and the CICIDS path does.** This
+asymmetry is deliberate on the replay side and simply absent on this one.
+`parse_cicids_row` takes an ARRIVAL `timestamp` from its caller and parks the
+row's July 2017 capture time in `captured_at`, precisely so the frozen UI
+renders a fresh alert rather than a nine-year-old one. `parse_eve_record` has no
+such split: it reads `record["timestamp"]` and passes it straight through to
+`NormalizedAlert.timestamp`. So if these 107 records were ever rendered they
+would show as roughly fifteen years old.
+
+They are not rendered today. **Nothing in the codebase loads this file** —
+`read_eve_file` has no caller, and the only references to
+`suricata_eve_sample.json` anywhere in the tree are this document and the
+directory tree in `README.md`. The live path reaches `parse_eve_record` through
+`POST /ingest/eve` with records posted by the forwarder, never from this file.
+It is a committed reference artifact: evidence that the parser was proven
+against real engine output, and a fixture available to anyone who wants to
+replay that proof. A sample whose dates should render fresh has to come from a
+fresh capture — rewriting these timestamps would make the file a fabrication.
 
 ---
 
@@ -294,8 +326,8 @@ persisted alerts, with the replay loop running throughout.
 | Stage | What actually ran |
 |---|---|
 | Engine | **Suricata 8.0.6 RELEASE**, official `jasonish/suricata` container |
-| Rules | ET Open via `suricata-update` — **68,625 rules, 52,672 enabled** |
-| Input | `smallFlows.pcap`, the public tcpreplay capture — **14,261 packets, 9,216,531 bytes** |
+| Rules | ET Open via `suricata-update` — **68,625 rules, 52,672 enabled**, a second pull made for this run; ET Open gains rules between pulls, which is why this is two higher than the 68,623 / 52,670 recorded above |
+| Input | `smallFlows.pcap`, the public tcpreplay capture — **14,261 packets, 9,216,531 bytes**, captured 2011-01-25; the EVE timestamps are the pcap's own |
 | Command | `suricata -r smallFlows.pcap -l out -k none -S rules/suricata.rules` |
 | Output | **2,075 EVE records: 107 `alert`, plus 641 flow, 577 http, 501 fileinfo, 106 anomaly, 68 dns, 57 tls, 16 snmp, 1 dhcp, 1 stats** |
 | Forwarder | `tools/eve_forwarder.py`, batch 50, tailing the live file |
@@ -332,7 +364,7 @@ output:
 | | |
 |---|---|
 | Real alert records | **107** |
-| Distinct top-level keys on them | **22** (the schema names 9) |
+| Distinct top-level keys on them | **22** (the schema names 9) — `alert`, `app_proto`, `dest_ip`, `dest_port`, `direction`, `event_type`, `files`, `flow`, `flow_id`, `http`, `ip_v`, `metadata`, `pcap_cnt`, `pkt_src`, `proto`, `src_ip`, `src_port`, `tc_progress`, `timestamp`, `tls`, `ts_progress`, `tx_id`. Note there is no `in_iface`: that key names a live capture interface and offline pcap mode emits none |
 | Pass `EveEvent` validation | **107 / 107**, zero rejected |
 | Parse to a `live_demo` alert | **107 / 107** |
 | Persisted through the graph | **107 / 107**, in a SINGLE forwarder pass of 42 batches |

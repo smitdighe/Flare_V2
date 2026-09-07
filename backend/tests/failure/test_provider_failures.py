@@ -351,6 +351,64 @@ async def test_an_all_dead_pool_says_dead_not_cooling(install) -> None:
     assert "groq-dev" in caught.value.reasons
 
 
+def test_a_dead_primary_pool_still_fails_over_to_the_other_provider() -> None:
+    """PLAN D39 — a DEAD Gemini pool must reach a healthy Groq.
+
+    `AllKeysDeadError` subclasses RuntimeError, not ProviderError, so it is easy
+    to leave out of a failover predicate that already names its cooling
+    sibling. Leaving it out is the worse bug of the two: cooling recovers on its
+    own and dead never does, so the case that most needs the fallback is the one
+    that would silently skip it while Groq sat healthy.
+    """
+    from app.agent.nodes.reason import should_failover
+
+    assert should_failover(AllKeysDeadError("gemini", {"gemini-dev": "403"})) is True
+    assert should_failover(AllKeysCoolingError("gemini", 30.0)) is True
+    # Still NOT a failover: the request itself is wrong and a second provider
+    # would reject the same request while spending a second quota.
+    assert should_failover(ProviderHTTPError("gemini", 400, "bad request")) is False
+    assert should_failover(EmptyContentError("gemini", "empty")) is False
+
+
+def test_an_unprobed_key_is_not_reported_as_a_verified_one() -> None:
+    """PLAN D39 — sticky selection means `reserved` is never exercised.
+
+    A key with no calls has never been rejected, so `dead=False` on it means
+    NOT YET ASKED. `/health/deep` probes one key per provider by design, so it
+    cannot close this gap and the snapshot must not read as if it had.
+    """
+    key_pool = KeyPool(
+        "gemini",
+        {"dev": "k1", "reserved": "k2", "spare": "k3"},
+        default_cooldown_seconds=60.0,
+    )
+    assert key_pool.unprobed_keys == ["gemini-dev", "gemini-reserved", "gemini-spare"]
+
+    key_pool.acquire()  # sticky: this only ever touches `dev`
+    assert key_pool.unprobed_keys == ["gemini-reserved", "gemini-spare"]
+
+    snapshot = {row["key_id"]: row for row in key_pool.snapshot()}
+    assert snapshot["gemini-dev"]["probed"] is True
+    assert snapshot["gemini-reserved"]["probed"] is False
+    assert snapshot["gemini-reserved"]["dead"] is False, (
+        "an unprobed key is not dead — but it is not verified either, which is "
+        "exactly what `probed` exists to say"
+    )
+    assert key_pool.live == 3, "live counts keys not KNOWN dead, not keys known good"
+
+
+def test_keys_for_probe_returns_every_key_including_dead_ones() -> None:
+    """The preflight has to be able to re-check a key that died earlier."""
+    key_pool = KeyPool(
+        "gemini", {"dev": "k1", "reserved": "k2"}, default_cooldown_seconds=60.0
+    )
+    key_pool.mark_dead("gemini-dev", "403 project has been denied")
+
+    labels = [label for label, _ in key_pool.keys_for_probe()]
+    assert labels == ["gemini-dev", "gemini-reserved"]
+    assert [secret for _, secret in key_pool.keys_for_probe()] == ["k1", "k2"]
+
+
 def test_marking_a_key_dead_twice_logs_once() -> None:
     """A line repeated on every cooldown is a line nobody reads.
 

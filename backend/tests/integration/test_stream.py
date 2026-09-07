@@ -26,9 +26,10 @@ needs_data = pytest.mark.skipif(
 
 WS_URL = "/api/v1/ws/stream"
 CLOSE_INVALID_TOKEN = 4001
+CLOSE_FORBIDDEN = 4003
 
 
-def _make_user_and_token(email: str) -> str:
+def _make_user_and_token(email: str, role: str = "viewer") -> str:
     """Create a user and mint an access token, then release the engine.
 
     TestClient drives the app on its OWN event loop. An async engine created on
@@ -46,7 +47,7 @@ def _make_user_and_token(email: str) -> str:
     from app.store.session import dispose_engine, get_sessionmaker
 
     async def _run() -> str:
-        await make_user(email)
+        await make_user(email, role=role)
         async with get_sessionmaker()() as session:
             user = (
                 await session.execute(select(User).where(User.email == email))
@@ -96,6 +97,54 @@ def test_invalid_token_closes_4001(sync_client: TestClient) -> None:
         socket.receive_text()
 
     assert excinfo.value.code == CLOSE_INVALID_TOKEN
+
+
+def test_every_real_role_is_admitted_to_the_feed() -> None:
+    """The alert stream IS the product view; `/alerts` has no role guard either.
+
+    Asserted rather than assumed, because the 4003 branch below is one edit away
+    from locking out an ordinary analyst mid-demo. This is a statement about the
+    admitted SET, checked directly: the live handshake for an admitted role is
+    already covered by `test_valid_handshake_streams_bare_alerts`, and opening a
+    socket per role here only re-exercises that path while churning the
+    TestClient's connection pool.
+    """
+    from app.api.deps import ROLES
+    from app.api.routes.stream import STREAM_ROLES
+
+    assert STREAM_ROLES == frozenset(ROLES), (
+        "every role the app defines watches the feed; a role missing here is "
+        "an analyst locked out of the main screen"
+    )
+    assert "decommissioned" not in STREAM_ROLES, "the 4003 branch stays reachable"
+
+
+def test_a_role_that_is_not_a_role_closes_4003_not_4001(
+    sync_client: TestClient,
+) -> None:
+    """CONTRACT §3.0 step 5 — the second close code, and it has to be reachable.
+
+    `User.role` is a plain String(20) with no database-level constraint, so a
+    hand-edited row, a bad seed or a future migration can put a value there that
+    no `require_role` list contains. PLAN §9 says that fails CLOSED: an
+    unrecognised role gets nothing, rather than getting everything because no
+    branch matched it.
+
+    4003 and not 4001: the token is perfectly valid and re-authenticating cannot
+    help, and the frozen client renders the two differently
+    (useAlertStream.js:37).
+    """
+    token = _make_user_and_token("ghost-role@flare.dev", role="decommissioned")
+
+    with (
+        sync_client.websocket_connect(WS_URL) as socket,
+        pytest.raises(WebSocketDisconnect) as excinfo,
+    ):
+        socket.send_text(json.dumps({"type": "auth", "token": token}))
+        socket.receive_text()
+
+    assert excinfo.value.code == CLOSE_FORBIDDEN
+    assert excinfo.value.code != CLOSE_INVALID_TOKEN
 
 
 def test_query_string_token_does_not_authenticate(

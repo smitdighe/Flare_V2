@@ -35,7 +35,7 @@ from app.agent.trace import TraceBuilder, traced
 from app.ingestion.labels import CANONICAL_CLASSES, SEVERITY_ORDER
 from app.ml.classifier import get_classifier
 from app.providers.base import ProviderError
-from app.providers.keypool import AllKeysCoolingError
+from app.providers.keypool import AllKeysCoolingError, AllKeysDeadError
 from app.providers.registry import call_with_rotation, get_registry
 from app.security.sanitize import clamp_enum
 
@@ -112,12 +112,16 @@ async def classify_node(state: PipelineState, trace: TraceBuilder) -> dict[str, 
                 CLASSIFY_SYSTEM, build_classify_prompt(decided), max_tokens=400
             ),
         )
-    except (ProviderError, AllKeysCoolingError) as exc:
+    except (ProviderError, AllKeysCoolingError, AllKeysDeadError) as exc:
         # I13 — a failed escalation does not erase the fast tier's verdict, and
         # it does not become a silent `unknown`. The model's answer stands, the
         # trace says the escalation failed, and the alert is degraded.
-        # AllKeysCoolingError is named here so an exhausted pool still produces
-        # a provider-attributed entry rather than an anonymous one.
+        # AllKeysCoolingError and AllKeysDeadError are named here so an
+        # exhausted pool and a revoked one still produce a provider-attributed
+        # entry rather than an anonymous one. Neither subclasses ProviderError
+        # — they come from the pool, not from a provider response — so leaving
+        # them out sends the exception to the @traced backstop, which records a
+        # correct-looking failure while skipping this branch's I13 handling.
         trace.record(
             TraceStatus.FAILED,
             provider="groq",

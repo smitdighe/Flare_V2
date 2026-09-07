@@ -53,6 +53,12 @@ class ProviderRegistry:
         operator reading `/health/deep` can tell a pool that is waiting out a
         rate limit from a pool that has lost a credential permanently. The two
         look identical if you only count keys, and they need opposite responses.
+
+        `unprobed_keys` is the THIRD state and the one that has actually bitten:
+        selection is sticky, so `/health/deep`'s single probe per provider only
+        ever exercises the current key. A revoked `reserved` or `spare` key sits
+        in `live_keys` reporting `dead=false` until something calls it — which,
+        on demo day, is the first alert. Only `scripts.verify_keys` clears it.
         """
         return {
             "offline_mode": self.offline_mode,
@@ -62,6 +68,9 @@ class ProviderRegistry:
                 "keys": self.groq_pool.snapshot(),
                 "live_keys": self.groq_pool.live,
                 "dead_keys": self.groq_pool.dead_keys,
+                # `live_keys` counts keys NOT KNOWN to be dead, which is not the
+                # same as keys known to work. This names the difference.
+                "unprobed_keys": self.groq_pool.unprobed_keys,
             },
             "gemini": {
                 "model": self.gemini.model,
@@ -69,6 +78,7 @@ class ProviderRegistry:
                 "keys": self.gemini_pool.snapshot(),
                 "live_keys": self.gemini_pool.live,
                 "dead_keys": self.gemini_pool.dead_keys,
+                "unprobed_keys": self.gemini_pool.unprobed_keys,
             },
         }
 

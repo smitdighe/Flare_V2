@@ -29,6 +29,7 @@ from typing import Any
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import ROLES
 from app.ingestion.feed import Subscriber, get_feed
 from app.notifications.presence import get_presence
 from app.security.tokens import TokenError, decode_token
@@ -43,6 +44,21 @@ AUTH_TIMEOUT_SECONDS = 10.0
 
 CLOSE_INVALID_TOKEN = 4001
 CLOSE_FORBIDDEN = 4003
+
+#: Roles admitted to the live feed. CONTRACT §3.0 step 5 requires a 4003 close
+#: for "valid token, insufficient role", so the set has to be declared
+#: somewhere rather than assumed — an unenforced close code is a promise the
+#: frozen client already honours (useAlertStream.js:37 stops reconnecting on
+#: 4003) against a server that never sends it.
+#:
+#: All three roles watch the feed: the alert stream IS the product view, and
+#: `/alerts` — the same data over HTTP — carries no role guard either. What this
+#: refuses is a role that is not a role. `User.role` is a plain String(20) with
+#: no database-level constraint, so a hand-edited row, a bad seed or a future
+#: migration can put a value here that no `require_role` list contains. Failing
+#: that closed is PLAN §9: an unrecognised role gets nothing, rather than
+#: getting everything because no branch matched it.
+STREAM_ROLES: frozenset[str] = frozenset(ROLES)
 
 
 async def _resolve_user(session: AsyncSession, token: str) -> User | None:
@@ -138,6 +154,18 @@ async def stream(websocket: WebSocket) -> None:
     user = await _authenticate(websocket)
     if user is None:
         await websocket.close(code=CLOSE_INVALID_TOKEN, reason="authentication failed")
+        return
+
+    # CONTRACT §3.0 step 5 — the OTHER close code, and a different fact: the
+    # token was valid and the account is not allowed here. Kept distinct from
+    # 4001 because they are distinct problems (re-authenticating fixes one and
+    # cannot fix the other), and the frozen client renders them differently.
+    if user.role not in STREAM_ROLES:
+        logger.warning(
+            "stream refused: role is not admitted",
+            extra={"request_id": "-", "user_id": user.id, "role": user.role},
+        )
+        await websocket.close(code=CLOSE_FORBIDDEN, reason="insufficient role")
         return
 
     feed = get_feed()

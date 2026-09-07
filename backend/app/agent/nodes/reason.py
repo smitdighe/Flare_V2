@@ -59,7 +59,7 @@ from app.providers.base import (
     ProviderTimeout,
     parse_json_content,
 )
-from app.providers.keypool import AllKeysCoolingError
+from app.providers.keypool import AllKeysCoolingError, AllKeysDeadError
 from app.providers.registry import call_with_rotation, get_registry
 from app.security.sanitize import clamp_enum, clamp_text
 
@@ -94,7 +94,11 @@ def should_failover(exc: Exception) -> bool:
     Kept module-level and free of state so the decision is unit-testable
     without a graph, a registry or a network.
     """
-    if isinstance(exc, ProviderTimeout | AllKeysCoolingError):
+    # AllKeysDeadError is here for the same reason AllKeysCoolingError is: the
+    # primary cannot answer. It is in fact the STRONGER case — a cooling pool
+    # recovers on its own and a dead one never does — so a dead Gemini pool
+    # while Groq is healthy must reach Groq. PLAN D39.
+    if isinstance(exc, ProviderTimeout | AllKeysCoolingError | AllKeysDeadError):
         return True
     if isinstance(exc, ProviderHTTPError):
         return exc.status_code in FAILOVER_STATUS_CODES
@@ -142,7 +146,7 @@ async def reason_node(state: PipelineState, trace: TraceBuilder) -> dict[str, An
             registry.gemini_pool,
             lambda: registry.gemini.complete(system, prompt, max_tokens=900),
         )
-    except (ProviderError, AllKeysCoolingError) as exc:
+    except (ProviderError, AllKeysCoolingError, AllKeysDeadError) as exc:
         primary.error = exc
 
     served = primary
@@ -155,7 +159,7 @@ async def reason_node(state: PipelineState, trace: TraceBuilder) -> dict[str, An
                 registry.groq_pool,
                 lambda: registry.groq.complete(system, prompt, max_tokens=900),
             )
-        except (ProviderError, AllKeysCoolingError) as exc:
+        except (ProviderError, AllKeysCoolingError, AllKeysDeadError) as exc:
             fallback.error = exc
         served = fallback
 
