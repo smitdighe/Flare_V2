@@ -96,9 +96,11 @@ frontend/pnpm-debug.log*
 # ---------------- Catch-all logs ----------------
 *.log
 
-
+# ---------------- Working notes, kept local ----------------
+# Internal scratch, not part of the shipped repo. PLAN.md is the exception:
+# tests/invariants/test_invariants.py parses the invariant table out of it
+# (test_every_invariant_has_a_named_test), so it MUST be tracked.
 BACKEND_SUMMARY.md
 CONTRACT.md
 GAPS.md
-PLAN.md 
-REAL_VS_SIMULATED.md 
+REAL_VS_SIMULATED.md
