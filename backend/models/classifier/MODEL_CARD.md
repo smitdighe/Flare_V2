@@ -95,7 +95,7 @@ structural-guard style as `synthesize_signature` and `ReplayEngine`.
 
 Source: CICIDS2017 `GeneratedLabelledFlows`, five attack-heavy days. Six
 classes — `heartbleed` (11 flows in the entire capture) is excluded, and the
-DoS and Web Attack variants collapse. See `data/README.md`.
+DoS and Web Attack variants collapse. See `data/PROVENANCE.md`.
 
 **Partition contract — deduplication comes before splitting.** The population is
 deduplicated on the 77-feature vector *before* the three-way split, not only on

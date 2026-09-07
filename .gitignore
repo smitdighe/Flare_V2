@@ -64,7 +64,7 @@ backend/data/datasets/raw/
 backend/data/datasets/cicids2017/
 backend/data/datasets/clean/
 !backend/data/splits/
-!backend/data/README.md
+!backend/data/PROVENANCE.md
 
 # backend/models/ is deliberately NOT ignored — D21. The committed weights and
 # index are the reason a cold clone works with no network, which is the failure

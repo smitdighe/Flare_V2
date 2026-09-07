@@ -22,6 +22,7 @@ from app.rag.loader import CORPUS_DIR, corpus_hash, load_corpus, load_manifest, 
 from app.rag.retriever import INDEX_DIR, Retriever, build_query
 
 BACKEND = Path(__file__).resolve().parents[2]
+REPO_ROOT = BACKEND.parent
 LABELS = BACKEND / "data" / "retrieval_labels.json"
 
 needs_index = pytest.mark.skipif(
@@ -228,8 +229,21 @@ def test_query_builder_expands_the_class_enum() -> None:
 
 
 def test_embedding_weights_are_committed_not_gitignored() -> None:
-    """PLAN D21 — a cold clone with no network is the case this design serves."""
-    ignore = (BACKEND / ".gitignore").read_text(encoding="utf-8")
-    assert "models/" not in ignore.split("#")[0], "models/ must not be gitignored"
+    """PLAN D21 — a cold clone with no network is the case this design serves.
+
+    The repository keeps ONE `.gitignore`, at the root, so this reads that file
+    rather than a per-package one. Comment lines are dropped per line: the file
+    documents the `models/` exception in prose, and a substring search over the
+    raw text would match the explanation instead of a rule.
+    """
+    ignore = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8")
+    patterns = [
+        line.strip()
+        for line in ignore.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    assert patterns, "the root .gitignore has no active patterns — wrong file?"
+    offending = [p for p in patterns if "models" in p and not p.startswith("!")]
+    assert not offending, f"the committed model artifacts are gitignored by {offending}"
     assert (EMBEDDING_DIR / "model_quantized.onnx").exists()
     assert sha256_of(EMBEDDING_DIR / "model_quantized.onnx")

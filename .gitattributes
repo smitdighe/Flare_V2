@@ -1,0 +1,26 @@
+# ============================================================
+# Flare_V2 — attributes. Root-only, same as .gitignore.
+# Later rules win, so the byte-pinned artifacts come after the
+# general `*` rule and override it.
+# ============================================================
+
+# ---------------- Normal source ----------------
+# Normalise to LF in the repo, check out native. Git's default with a modern
+# core.autocrlf; stated so a misconfigured clone still gets consistent source.
+*                        text=auto
+
+# ---------------- Byte-pinned artifacts ----------------
+# PLAN D21: the committed model weights and dataset partitions are verified
+# byte-for-byte against sha256 digests recorded in metrics.json and
+# CHECKSUMS.json. Those digests were computed on a Windows working tree, i.e.
+# over CRLF bytes. Git for Windows (core.autocrlf=true) normalises CRLF -> LF
+# into the blob at commit time, so on any LF checkout — every ubuntu-latest CI
+# runner — the files hash differently and every job that loads a model or runs
+# `scripts.ci.run artifact_integrity` fails with a checksum mismatch.
+#
+# `-text` pins these paths to one byte representation: stored and checked out
+# verbatim on every platform, no EOL translation, so the digest is stable.
+# The .onnx and .npy already store verbatim (Git detected them binary); listing
+# the whole trees here is harmless and documents the intent.
+backend/models/**        -text
+backend/data/splits/**   -text

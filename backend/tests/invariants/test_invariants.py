@@ -837,13 +837,18 @@ def test_I11_readme_claims_point_at_real_artifacts() -> None:
 
     Phase 8 rewrites the README against this test rather than the other way
     round; what it asserts today is that nothing currently claimed is missing.
+
+    The repository keeps ONE README, at the root, so this reads that file and
+    resolves the paths it names against the repo root — which also brings the
+    frontend half of the tree under the same rule.
     """
-    readme = (BACKEND_ROOT / "README.md").read_text(encoding="utf-8")
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
 
     referenced = set(
-        re.findall(r"`((?:app|scripts|models|data|tests)/[\w./-]+)`", readme)
+        re.findall(r"`((?:backend|frontend|\.github)/[\w./-]+)`", readme)
     )
-    missing = sorted(p for p in referenced if not (BACKEND_ROOT / p).exists())
+    assert referenced, "no repo-relative path found in the README — wrong file?"
+    missing = sorted(p for p in referenced if not (REPO_ROOT / p).exists())
     assert not missing, (
         "PLAN I11 — the README names paths that do not exist: " + ", ".join(missing)
     )

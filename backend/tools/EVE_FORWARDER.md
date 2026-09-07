@@ -1,4 +1,4 @@
-# tools/ — things that run somewhere else
+# `tools/` — the EVE forwarder, and things that run somewhere else
 
 Nothing in this directory is imported by the backend, on any code path. It is
 not in `app/`, it is not a `scripts.` module, and `make check` does not run it

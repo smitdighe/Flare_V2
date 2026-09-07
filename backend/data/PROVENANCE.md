@@ -376,7 +376,7 @@ a time outruns the pipeline and the 200-slot lane saturates. The endpoint then
 returns `202` with `live_lane_full` counted in `dropped_breakdown` — **not a
 503, and not a silent drop** — because a full live lane is not a service
 failure and replay is untouched. On demo day the fix is operator-side: raise
-`--poll` or lower `--batch` (`tools/README.md`).
+`--poll` or lower `--batch` (`tools/EVE_FORWARDER.md`).
 
 **Cross-provider fallback fired for real.** Gemini's whole pool went cooling
 mid-run and the reason node fell through to Groq, with the trace saying so:
