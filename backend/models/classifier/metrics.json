@@ -1,0 +1,659 @@
+{
+  "model_version": "1.0.0",
+  "trained_at": "2026-09-05T02:14:51.878401+00:00",
+  "seed": 20260904,
+  "library": {
+    "lightgbm": "4.7.0",
+    "numpy": "2.5.2",
+    "python": "3.13.7"
+  },
+  "train_partition": {
+    "rows": 5400,
+    "class_counts": {
+      "port_scan": 900,
+      "benign": 900,
+      "ddos": 900,
+      "web_attack": 900,
+      "botnet": 900,
+      "dos": 900
+    }
+  },
+  "eval_partition": {
+    "rows": 1800,
+    "class_counts": {
+      "benign": 300,
+      "web_attack": 300,
+      "port_scan": 300,
+      "botnet": 300,
+      "ddos": 300,
+      "dos": 300
+    }
+  },
+  "feature_schema_fingerprint": "36e198810eb2bf761acd928657454b8c47f9e4451c0219142f5cc74eea0dbc9d",
+  "attack_type_head": {
+    "classes": [
+      "benign",
+      "botnet",
+      "ddos",
+      "dos",
+      "port_scan",
+      "web_attack"
+    ],
+    "hyperparameters": {
+      "num_leaves": 15,
+      "learning_rate": 0.1,
+      "n_estimators": 200,
+      "min_child_samples": 20
+    },
+    "cross_validation": [
+      {
+        "params": {
+          "num_leaves": 15,
+          "learning_rate": 0.1,
+          "n_estimators": 200,
+          "min_child_samples": 20
+        },
+        "cv_macro_f1_mean": 0.9957431912396997,
+        "cv_macro_f1_std": 0.0016157323136042705,
+        "cv_macro_f1_folds": [
+          0.996301,
+          0.997225,
+          0.996299,
+          0.996299,
+          0.992592
+        ]
+      },
+      {
+        "params": {
+          "num_leaves": 31,
+          "learning_rate": 0.05,
+          "n_estimators": 300,
+          "min_child_samples": 20
+        },
+        "cv_macro_f1_mean": 0.9951856093257044,
+        "cv_macro_f1_std": 0.001593513402664605,
+        "cv_macro_f1_folds": [
+          0.997222,
+          0.99537,
+          0.994444,
+          0.996299,
+          0.992592
+        ]
+      },
+      {
+        "params": {
+          "num_leaves": 31,
+          "learning_rate": 0.1,
+          "n_estimators": 200,
+          "min_child_samples": 40
+        },
+        "cv_macro_f1_mean": 0.9953723022919354,
+        "cv_macro_f1_std": 0.0015480241438159395,
+        "cv_macro_f1_folds": [
+          0.997222,
+          0.99537,
+          0.996299,
+          0.995373,
+          0.992597
+        ]
+      },
+      {
+        "params": {
+          "num_leaves": 63,
+          "learning_rate": 0.05,
+          "n_estimators": 300,
+          "min_child_samples": 10
+        },
+        "cv_macro_f1_mean": 0.9953671647239606,
+        "cv_macro_f1_std": 0.0016592852235343364,
+        "cv_macro_f1_folds": [
+          0.998148,
+          0.994437,
+          0.993513,
+          0.996299,
+          0.994439
+        ]
+      }
+    ],
+    "fit_rows": 4320,
+    "calibration_rows": 1080,
+    "class_weighting": "none \u2014 build_partitions.py caps every class at the same count, so the training partition is exactly balanced at 900 rows per class and reweighting would only add variance",
+    "held_out": {
+      "accuracy": 0.9944444444444445,
+      "macro_f1": 0.9944434784380592,
+      "per_class": {
+        "benign": {
+          "precision": 0.99,
+          "recall": 0.99,
+          "f1": 0.99,
+          "support": 300
+        },
+        "botnet": {
+          "precision": 0.993333,
+          "recall": 0.993333,
+          "f1": 0.993333,
+          "support": 300
+        },
+        "ddos": {
+          "precision": 0.996678,
+          "recall": 1.0,
+          "f1": 0.998336,
+          "support": 300
+        },
+        "dos": {
+          "precision": 0.996644,
+          "recall": 0.99,
+          "f1": 0.993311,
+          "support": 300
+        },
+        "port_scan": {
+          "precision": 1.0,
+          "recall": 0.993333,
+          "f1": 0.996656,
+          "support": 300
+        },
+        "web_attack": {
+          "precision": 0.990099,
+          "recall": 1.0,
+          "f1": 0.995025,
+          "support": 300
+        }
+      },
+      "confusion_matrix": {
+        "labels": [
+          "benign",
+          "botnet",
+          "ddos",
+          "dos",
+          "port_scan",
+          "web_attack"
+        ],
+        "rows_are_true": true,
+        "matrix": [
+          [
+            297,
+            1,
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            2,
+            298,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            300,
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            297,
+            0,
+            2
+          ],
+          [
+            0,
+            1,
+            0,
+            1,
+            298,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            300
+          ]
+        ]
+      },
+      "baselines": {
+        "random": 0.166667,
+        "majority": 0.166667,
+        "nearest_neighbour_1nn": 0.984444
+      }
+    },
+    "binary_detection": {
+      "accuracy": 0.9966666666666667,
+      "precision": 0.998,
+      "recall": 0.998,
+      "f1": 0.998,
+      "baselines": {
+        "random": 0.5,
+        "majority": 0.833333
+      }
+    },
+    "router_threshold": {
+      "confidence_distribution": {
+        "min": 0.353328,
+        "median": 1.0,
+        "mean": 0.999086,
+        "saturated_at_one_fraction": 0.997222
+      },
+      "sweep": [
+        {
+          "threshold": 0.999,
+          "escalated_fraction": 0.002778,
+          "escalated_count": 5,
+          "accuracy_on_escalated": 0.6,
+          "accuracy_on_kept": 0.995543
+        },
+        {
+          "threshold": 0.99,
+          "escalated_fraction": 0.002778,
+          "escalated_count": 5,
+          "accuracy_on_escalated": 0.6,
+          "accuracy_on_kept": 0.995543
+        },
+        {
+          "threshold": 0.95,
+          "escalated_fraction": 0.002778,
+          "escalated_count": 5,
+          "accuracy_on_escalated": 0.6,
+          "accuracy_on_kept": 0.995543
+        },
+        {
+          "threshold": 0.9,
+          "escalated_fraction": 0.002222,
+          "escalated_count": 4,
+          "accuracy_on_escalated": 0.5,
+          "accuracy_on_kept": 0.995546
+        },
+        {
+          "threshold": 0.8,
+          "escalated_fraction": 0.001667,
+          "escalated_count": 3,
+          "accuracy_on_escalated": 0.333333,
+          "accuracy_on_kept": 0.995548
+        },
+        {
+          "threshold": 0.5,
+          "escalated_fraction": 0.000556,
+          "escalated_count": 1,
+          "accuracy_on_escalated": 0.0,
+          "accuracy_on_kept": 0.994997
+        }
+      ],
+      "note": "Isotonic on a well-separated problem pushes most confident predictions to exactly 1.0, so almost nothing falls below any threshold. The gate still discriminates \u2014 the few rows below it are where the errors are \u2014 but the LLM tier will be nearly idle on this data, and a demo that depends on visible escalation needs to know that."
+    },
+    "calibration": {
+      "method": "isotonic, one-vs-rest, fitted on a held-out 20% of train",
+      "expected_calibration_error_raw": 0.004722,
+      "expected_calibration_error_calibrated": 0.005274,
+      "knots": [
+        {
+          "x": [
+            3.835559248799802e-09,
+            0.0023644054317479065,
+            0.007118325753590623,
+            0.9779793009290734,
+            0.995810466043003,
+            0.999999971732794
+          ],
+          "y": [
+            0.0,
+            0.0,
+            0.5,
+            0.5,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "x": [
+            1.3573368544683294e-09,
+            0.0014437067407526514,
+            0.021893282973703517,
+            0.9999998973500267
+          ],
+          "y": [
+            0.0,
+            0.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "x": [
+            5.519035608125589e-09,
+            0.040859500717754606,
+            0.999995547779345,
+            0.9999999116649843
+          ],
+          "y": [
+            0.0,
+            0.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "x": [
+            6.328167052372338e-10,
+            0.8223907948302148,
+            0.997977824504454,
+            0.9999999728740979
+          ],
+          "y": [
+            0.0,
+            0.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "x": [
+            2.044186833548941e-09,
+            0.0041433544568745435,
+            0.9798553448089473,
+            0.9999999761886481
+          ],
+          "y": [
+            0.0,
+            0.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "x": [
+            1.3672052854895423e-09,
+            0.018810575291617605,
+            0.24251164548452847,
+            0.38579239079769756,
+            0.9753604862743868,
+            0.9999999257907186
+          ],
+          "y": [
+            0.0,
+            0.0,
+            0.5,
+            0.5,
+            1.0,
+            1.0
+          ]
+        }
+      ]
+    },
+    "feature_importance_gain": {
+      "Destination Port": 11866,
+      "Init_Win_bytes_backward": 11438,
+      "Bwd Packets/s": 6945,
+      "Fwd Packet Length Std": 5297,
+      "PSH Flag Count": 4985,
+      "Total Length of Bwd Packets": 4520,
+      "act_data_pkt_fwd": 4142,
+      "Bwd Packet Length Min": 4080,
+      "Total Backward Packets": 3403,
+      "Flow Duration": 3368,
+      "Fwd Packet Length Max": 2888,
+      "Total Length of Fwd Packets": 2453,
+      "Idle Mean": 2199,
+      "min_seg_size_forward": 1929,
+      "Init_Win_bytes_forward": 1543,
+      "Bwd Packet Length Std": 1502,
+      "Idle Min": 1329,
+      "Max Packet Length": 1100,
+      "Fwd Header Length": 1017,
+      "Flow IAT Min": 855,
+      "Fwd IAT Min": 646,
+      "Bwd Packet Length Mean": 563,
+      "Packet Length Mean": 494,
+      "FIN Flag Count": 476,
+      "Average Packet Size": 448,
+      "Flow Bytes/s": 337,
+      "Bwd Header Length": 284,
+      "Fwd Packets/s": 248,
+      "Active Mean": 238,
+      "Flow IAT Max": 225,
+      "Flow Packets/s": 212,
+      "Fwd IAT Std": 190,
+      "Flow IAT Mean": 168,
+      "Bwd IAT Min": 150,
+      "Fwd Packet Length Mean": 145,
+      "Bwd IAT Total": 128,
+      "Bwd Packet Length Max": 123,
+      "Total Fwd Packets": 112,
+      "Flow IAT Std": 79,
+      "Fwd IAT Total": 61,
+      "Active Std": 52,
+      "ACK Flag Count": 47,
+      "Bwd IAT Std": 39,
+      "Packet Length Std": 21,
+      "Down/Up Ratio": 21,
+      "URG Flag Count": 20,
+      "Min Packet Length": 14,
+      "Fwd IAT Mean": 13,
+      "Bwd IAT Mean": 13,
+      "Fwd IAT Max": 11,
+      "Fwd PSH Flags": 7,
+      "Fwd Packet Length Min": 5,
+      "Active Min": 5,
+      "Bwd IAT Max": 3,
+      "Bwd PSH Flags": 0,
+      "Fwd URG Flags": 0,
+      "Bwd URG Flags": 0,
+      "Packet Length Variance": 0,
+      "SYN Flag Count": 0,
+      "RST Flag Count": 0,
+      "CWE Flag Count": 0,
+      "ECE Flag Count": 0,
+      "Avg Fwd Segment Size": 0,
+      "Avg Bwd Segment Size": 0,
+      "Fwd Avg Bytes/Bulk": 0,
+      "Fwd Avg Packets/Bulk": 0,
+      "Fwd Avg Bulk Rate": 0,
+      "Bwd Avg Bytes/Bulk": 0,
+      "Bwd Avg Packets/Bulk": 0,
+      "Bwd Avg Bulk Rate": 0,
+      "Subflow Fwd Packets": 0,
+      "Subflow Fwd Bytes": 0,
+      "Subflow Bwd Packets": 0,
+      "Subflow Bwd Bytes": 0,
+      "Active Max": 0,
+      "Idle Std": 0,
+      "Idle Max": 0
+    },
+    "booster_sha256": "da43077f1a955aff37d3c55691cac326d0bb61f6177f01a591240fafc35ca33a"
+  },
+  "severity_head": {
+    "classes": [
+      "low",
+      "medium",
+      "high",
+      "critical"
+    ],
+    "decomposition": "Frank & Hall \u2014 K-1 cumulative binary models, differenced",
+    "class_weighting": "balanced per cutoff \u2014 the class->severity map collapses dos, botnet and web_attack into `high`, so every cutoff is imbalanced even though the attack-type partition is not",
+    "hyperparameters": {
+      "num_leaves": 31,
+      "learning_rate": 0.05,
+      "n_estimators": 300,
+      "min_child_samples": 20,
+      "class_weight": "balanced"
+    },
+    "fit_rows": 4320,
+    "calibration_rows": 1080,
+    "held_out": {
+      "accuracy": 0.9933333333333333,
+      "macro_f1": 0.9927940643289999,
+      "per_class": {
+        "low": {
+          "precision": 0.980132,
+          "recall": 0.986667,
+          "f1": 0.983389,
+          "support": 300
+        },
+        "medium": {
+          "precision": 0.990066,
+          "recall": 0.996667,
+          "f1": 0.993355,
+          "support": 300
+        },
+        "high": {
+          "precision": 0.996652,
+          "recall": 0.992222,
+          "f1": 0.994432,
+          "support": 900
+        },
+        "critical": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 300
+        }
+      },
+      "confusion_matrix": {
+        "labels": [
+          "low",
+          "medium",
+          "high",
+          "critical"
+        ],
+        "rows_are_true": true,
+        "matrix": [
+          [
+            296,
+            2,
+            2,
+            0
+          ],
+          [
+            0,
+            299,
+            1,
+            0
+          ],
+          [
+            6,
+            1,
+            893,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            300
+          ]
+        ]
+      },
+      "baselines": {
+        "random": 0.25,
+        "majority": 0.5
+      }
+    },
+    "calibration": {
+      "method": "isotonic per cutoff, fitted on a held-out 20% of train",
+      "expected_calibration_error_calibrated": 0.004003
+    },
+    "thresholds": [
+      {
+        "cutoff": "P(severity > low)",
+        "booster": "severity_gt_low.booster.txt",
+        "booster_sha256": "123a236b5128297a4381db595f0e2715545d5ab2cd0c69fd79e1d0f056c3191b",
+        "knots": {
+          "x": [
+            2.2354575149903595e-07,
+            0.5294212339127143,
+            0.9733118463955696,
+            0.9999882534393488,
+            0.9999883916605987,
+            0.9999999618645318
+          ],
+          "y": [
+            0.0,
+            0.0,
+            0.9807692307692307,
+            0.9807692307692307,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "cutoff": "P(severity > medium)",
+        "booster": "severity_gt_medium.booster.txt",
+        "booster_sha256": "1f9a923ab948af24f7448b395217568ecbe13ed8c4362a4403126d37c45c06cb",
+        "knots": {
+          "x": [
+            1.5431404070448016e-07,
+            0.1978281359735067,
+            0.9893581423934902,
+            0.9999270928129051,
+            0.9999306065979556,
+            0.9999997617448843
+          ],
+          "y": [
+            0.0,
+            0.0,
+            0.9565217391304348,
+            0.9565217391304348,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "cutoff": "P(severity > high)",
+        "booster": "severity_gt_high.booster.txt",
+        "booster_sha256": "ae6224ea064bd6134ed307cbe1e0cd87d80c2fcc07f746871cb7f94c240a9b23",
+        "knots": {
+          "x": [
+            2.788070496559874e-07,
+            0.9997090097905592,
+            0.9999946921378472,
+            0.9999996820256251
+          ],
+          "y": [
+            0.0,
+            0.0,
+            1.0,
+            1.0
+          ]
+        }
+      }
+    ],
+    "not_independent_evidence": "Severity is a deterministic function of the attack type in this dataset (CLASS_TO_SEVERITY), not a separate human judgement. This head solves an easier problem than the attack-type head because confusing dos, botnet and web_attack costs nothing here. The number is real but it is not independent confirmation."
+  },
+  "separability_diagnostics": {
+    "exact_feature_duplicates_eval_in_train": 0,
+    "nearest_neighbour_accuracy": 0.984444,
+    "accuracy_without_destination_port": 0.991667,
+    "interpretation": "1-NN does no training and is given no label at inference, so its accuracy measures class separation alone. A booster score close to it means the classes are far apart in CICFlowMeter feature space, not that the booster memorised anything. The port figure isolates the one feature that is partly label-correlated by construction."
+  },
+  "leak_guard": {
+    "thresholds": {
+      "relative_margin_over_1nn": 0.05,
+      "relative_guard_applies_above": 0.98,
+      "exact_feature_duplicates_maximum": 0,
+      "attack_type_accuracy_ceiling": 0.995,
+      "degenerate_accuracy": 1.0,
+      "off_diagonal_minimum": 1
+    },
+    "superseded_thresholds": {
+      "attack_type_accuracy_ceiling": 0.98,
+      "why": "Set a priori, below the 0.9844 no-training 1-NN baseline for this configuration, so it could only ever fire. Replaced by a relative guard against that baseline plus an unconditional exact-overlap check; the absolute ceiling survives as a backstop at 0.995. PLAN \u00a77.3."
+    },
+    "measured": {
+      "attack_type_accuracy": 0.9944444444444445,
+      "nearest_neighbour_baseline": 0.984444,
+      "margin_over_baseline": 0.01,
+      "exact_feature_duplicates_eval_in_train": 0
+    },
+    "tripped": []
+  }
+}

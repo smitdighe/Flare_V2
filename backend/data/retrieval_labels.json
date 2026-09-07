@@ -1,0 +1,232 @@
+{
+  "purpose": "Hand-labelled alert -> expected-technique pairs. PLAN \u00a74.4 requires retrieval quality to be MEASURED, not asserted. scripts/eval_retrieval.py scores recall@k against this file and writes models/index/RETRIEVAL_REPORT.json.",
+  "query_shape": "Each pair carries the ALERT FIELDS, not a pre-built query string. scripts/eval_retrieval.py builds the query with app.rag.retriever.build_query, the same function Phase 3's retrieve node calls, so the measured recall@k describes the production path. `attack_type` is the CLASSIFIER's verdict, never the ground-truth label; the signature alone is deliberately label-free (PLAN I4) and too generic to retrieve on.",
+  "expected_semantics": "`expected` lists every technique a security analyst would accept as correct for that alert. A hit on ANY of them counts. Listing one arbitrary 'right answer' when several are equally defensible would measure agreement with an arbitrary choice rather than retrieval quality.",
+  "attack_version": "19.2",
+  "labelled_by": "hand, against https://attack.mitre.org technique descriptions",
+  "pairs": [
+    {
+      "id": "portscan-syn-sweep",
+      "attack_type": "port_scan",
+      "signature": "Flow to TCP/5544 \u2014 SYN-heavy, minimal payload, very short exchange, elevated packet rate (2 pkts, 6 bytes, 0 ms)",
+      "dest_port": 5544,
+      "expected": [
+        "T1046",
+        "T1595",
+        "T1595.001"
+      ],
+      "note": "SYN to a high non-service port with no payload is a port sweep."
+    },
+    {
+      "id": "portscan-unanswered",
+      "attack_type": "port_scan",
+      "signature": "Flow to TCP/443 \u2014 SYN-heavy, minimal payload, unanswered (1 pkts, 0 bytes, 0 ms)",
+      "dest_port": 443,
+      "expected": [
+        "T1046",
+        "T1595",
+        "T1595.001",
+        "T1018"
+      ],
+      "note": "Unanswered SYN \u2014 the host or port is closed. Still enumeration."
+    },
+    {
+      "id": "portscan-vuln-probe",
+      "attack_type": "port_scan",
+      "signature": "Flow to TCP/80 \u2014 very short exchange, large pushed payload (6 pkts, 812 bytes, 41 ms)",
+      "dest_port": 80,
+      "expected": [
+        "T1595.002",
+        "T1595",
+        "T1046"
+      ],
+      "note": "A scan that sends a real HTTP request is probing for a vulnerability, not just mapping ports."
+    },
+    {
+      "id": "ddos-flood",
+      "attack_type": "ddos",
+      "signature": "Flow to TCP/80 \u2014 SYN-heavy, minimal payload, high packet volume, elevated packet rate (3241 pkts, 0 bytes, 812 ms)",
+      "dest_port": 80,
+      "expected": [
+        "T1498",
+        "T1498.001",
+        "T1499.002"
+      ],
+      "note": "High-volume SYN with no payload against a web server."
+    },
+    {
+      "id": "ddos-bandwidth",
+      "attack_type": "ddos",
+      "signature": "Flow to UDP/53 \u2014 high packet volume, elevated packet rate (9822 pkts, 1409128 bytes, 2033 ms)",
+      "dest_port": 53,
+      "expected": [
+        "T1498",
+        "T1498.002",
+        "T1498.001"
+      ],
+      "note": "High-byte UDP/53 volume is the classic reflection/amplification shape."
+    },
+    {
+      "id": "dos-hulk",
+      "attack_type": "dos",
+      "signature": "Flow to TCP/80 \u2014 high packet volume, elevated packet rate, large pushed payload (1877 pkts, 962441 bytes, 4110 ms)",
+      "dest_port": 80,
+      "expected": [
+        "T1499",
+        "T1499.003",
+        "T1499.002"
+      ],
+      "note": "Single-source HTTP request flood \u2014 application-layer exhaustion."
+    },
+    {
+      "id": "dos-slowloris",
+      "attack_type": "dos",
+      "signature": "Flow to TCP/80 \u2014 very short exchange, unanswered (4 pkts, 0 bytes, 118442 ms)",
+      "dest_port": 80,
+      "expected": [
+        "T1499",
+        "T1499.002",
+        "T1499.003"
+      ],
+      "note": "Almost no data over a very long duration \u2014 held-open connections."
+    },
+    {
+      "id": "dos-goldeneye",
+      "attack_type": "dos",
+      "signature": "Flow to TCP/80 \u2014 elevated packet rate, large pushed payload (212 pkts, 88214 bytes, 902 ms)",
+      "dest_port": 80,
+      "expected": [
+        "T1499",
+        "T1499.003",
+        "T1499.002",
+        "T1498"
+      ],
+      "note": "Keep-alive HTTP flood."
+    },
+    {
+      "id": "botnet-c2-beacon",
+      "attack_type": "botnet",
+      "signature": "Flow to TCP/8080 \u2014 nominal exchange (7 pkts, 341 bytes, 82 ms)",
+      "dest_port": 8080,
+      "expected": [
+        "T1071",
+        "T1071.001",
+        "T1102",
+        "T1008"
+      ],
+      "note": "Small regular outbound HTTP on an alternate port \u2014 beaconing."
+    },
+    {
+      "id": "botnet-encrypted-channel",
+      "attack_type": "botnet",
+      "signature": "Flow to TCP/443 \u2014 nominal exchange, large pushed payload (44 pkts, 18220 bytes, 1901 ms)",
+      "dest_port": 443,
+      "expected": [
+        "T1573",
+        "T1573.001",
+        "T1573.002",
+        "T1071.001",
+        "T1071"
+      ],
+      "note": "Outbound TLS to non-CDN infrastructure carrying a payload."
+    },
+    {
+      "id": "botnet-dns-tunnel",
+      "attack_type": "botnet",
+      "signature": "Flow to UDP/53 \u2014 elevated packet rate (168 pkts, 24112 bytes, 4021 ms)",
+      "dest_port": 53,
+      "expected": [
+        "T1071.004",
+        "T1568",
+        "T1568.002",
+        "T1071"
+      ],
+      "note": "Excessive DNS volume from one host \u2014 tunnelling or DGA lookups."
+    },
+    {
+      "id": "botnet-tool-download",
+      "attack_type": "botnet",
+      "signature": "Flow to TCP/8080 \u2014 high packet volume, large pushed payload (2140 pkts, 1988221 bytes, 6612 ms)",
+      "dest_port": 8080,
+      "expected": [
+        "T1105",
+        "T1071.001",
+        "T1071"
+      ],
+      "note": "Large inbound transfer over the C2 channel \u2014 second-stage payload."
+    },
+    {
+      "id": "webattack-brute-force",
+      "attack_type": "web_attack",
+      "signature": "Flow to TCP/80 \u2014 very short exchange, large pushed payload (8 pkts, 1204 bytes, 88 ms)",
+      "dest_port": 80,
+      "expected": [
+        "T1110",
+        "T1110.001",
+        "T1110.003",
+        "T1190"
+      ],
+      "note": "Repeated small POSTs to a login form."
+    },
+    {
+      "id": "webattack-xss",
+      "attack_type": "web_attack",
+      "signature": "Flow to TCP/80 \u2014 very short exchange, large pushed payload (6 pkts, 2841 bytes, 62 ms)",
+      "dest_port": 80,
+      "expected": [
+        "T1059.007",
+        "T1190",
+        "T1189"
+      ],
+      "note": "Script payload delivered through a web parameter."
+    },
+    {
+      "id": "webattack-sqli",
+      "attack_type": "web_attack",
+      "signature": "Flow to TCP/80 \u2014 large pushed payload (11 pkts, 4402 bytes, 240 ms)",
+      "dest_port": 80,
+      "expected": [
+        "T1190",
+        "T1505.003",
+        "T1059.007"
+      ],
+      "note": "Injection against a public-facing application."
+    },
+    {
+      "id": "webattack-webshell",
+      "attack_type": "web_attack",
+      "signature": "Flow to TCP/80 \u2014 nominal exchange, large pushed payload (24 pkts, 12044 bytes, 1420 ms)",
+      "dest_port": 80,
+      "expected": [
+        "T1505.003",
+        "T1190"
+      ],
+      "note": "Sustained interactive traffic to one URL after a successful exploit."
+    },
+    {
+      "id": "eve-ssh-brute",
+      "attack_type": "brute_force",
+      "signature": "ET SCAN Potential SSH Scan OUTBOUND \u2014 attempted-recon on TCP/22",
+      "dest_port": 22,
+      "expected": [
+        "T1110",
+        "T1110.001",
+        "T1021.001",
+        "T1021"
+      ],
+      "note": "Suricata-sourced, so no flow features \u2014 this exercises the retrieval path for EVE alerts, which skip the classifier entirely."
+    },
+    {
+      "id": "eve-exploit-kit",
+      "attack_type": "exploit_kit",
+      "signature": "ET EXPLOIT Possible Exploit Kit Landing Page \u2014 trojan-activity on TCP/80",
+      "dest_port": 80,
+      "expected": [
+        "T1189",
+        "T1190",
+        "T1204"
+      ],
+      "note": "Drive-by delivery."
+    }
+  ]
+}

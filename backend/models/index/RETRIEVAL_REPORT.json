@@ -1,0 +1,491 @@
+{
+  "generated_at": "2026-09-04T16:26:04.844025+00:00",
+  "attack_version": "19.2",
+  "pairs": 18,
+  "corpus_techniques": 61,
+  "index_chunks": 313,
+  "recall@1": 0.777778,
+  "recall@3": 0.888889,
+  "recall@5": 0.944444,
+  "mean_reciprocal_rank": 0.844444,
+  "misses_at_5": [
+    "webattack-brute-force"
+  ],
+  "results": [
+    {
+      "id": "portscan-syn-sweep",
+      "expected": [
+        "T1046",
+        "T1595",
+        "T1595.001"
+      ],
+      "retrieved": [
+        "T1046",
+        "T1049",
+        "T1595.001",
+        "T1018",
+        "T1071"
+      ],
+      "top_scores": [
+        0.595042,
+        0.590132,
+        0.542787,
+        0.519625,
+        0.512896
+      ],
+      "first_hit_rank": 1,
+      "hit@1": true,
+      "hit@3": true,
+      "hit@5": true
+    },
+    {
+      "id": "portscan-unanswered",
+      "expected": [
+        "T1046",
+        "T1595",
+        "T1595.001",
+        "T1018"
+      ],
+      "retrieved": [
+        "T1046",
+        "T1049",
+        "T1071.001",
+        "T1071",
+        "T1595.001"
+      ],
+      "top_scores": [
+        0.596538,
+        0.570861,
+        0.548506,
+        0.538771,
+        0.531185
+      ],
+      "first_hit_rank": 1,
+      "hit@1": true,
+      "hit@3": true,
+      "hit@5": true
+    },
+    {
+      "id": "portscan-vuln-probe",
+      "expected": [
+        "T1595.002",
+        "T1595",
+        "T1046"
+      ],
+      "retrieved": [
+        "T1046",
+        "T1071.001",
+        "T1595.001",
+        "T1049",
+        "T1595"
+      ],
+      "top_scores": [
+        0.561789,
+        0.546856,
+        0.533322,
+        0.521779,
+        0.516501
+      ],
+      "first_hit_rank": 1,
+      "hit@1": true,
+      "hit@3": true,
+      "hit@5": true
+    },
+    {
+      "id": "ddos-flood",
+      "expected": [
+        "T1498",
+        "T1498.001",
+        "T1499.002"
+      ],
+      "retrieved": [
+        "T1499",
+        "T1499.002",
+        "T1498",
+        "T1498.001",
+        "T1499.001"
+      ],
+      "top_scores": [
+        0.681738,
+        0.670532,
+        0.662068,
+        0.637406,
+        0.623158
+      ],
+      "first_hit_rank": 2,
+      "hit@1": false,
+      "hit@3": true,
+      "hit@5": true
+    },
+    {
+      "id": "ddos-bandwidth",
+      "expected": [
+        "T1498",
+        "T1498.002",
+        "T1498.001"
+      ],
+      "retrieved": [
+        "T1498.001",
+        "T1499",
+        "T1498",
+        "T1499.002",
+        "T1499.003"
+      ],
+      "top_scores": [
+        0.636734,
+        0.635922,
+        0.626226,
+        0.555618,
+        0.532756
+      ],
+      "first_hit_rank": 1,
+      "hit@1": true,
+      "hit@3": true,
+      "hit@5": true
+    },
+    {
+      "id": "dos-hulk",
+      "expected": [
+        "T1499",
+        "T1499.003",
+        "T1499.002"
+      ],
+      "retrieved": [
+        "T1499",
+        "T1498",
+        "T1499.002",
+        "T1499.003",
+        "T1499.004"
+      ],
+      "top_scores": [
+        0.709834,
+        0.609305,
+        0.60354,
+        0.581033,
+        0.579872
+      ],
+      "first_hit_rank": 1,
+      "hit@1": true,
+      "hit@3": true,
+      "hit@5": true
+    },
+    {
+      "id": "dos-slowloris",
+      "expected": [
+        "T1499",
+        "T1499.002",
+        "T1499.003"
+      ],
+      "retrieved": [
+        "T1499",
+        "T1499.002",
+        "T1499.003",
+        "T1498",
+        "T1499.001"
+      ],
+      "top_scores": [
+        0.647097,
+        0.602144,
+        0.579335,
+        0.554849,
+        0.553224
+      ],
+      "first_hit_rank": 1,
+      "hit@1": true,
+      "hit@3": true,
+      "hit@5": true
+    },
+    {
+      "id": "dos-goldeneye",
+      "expected": [
+        "T1499",
+        "T1499.003",
+        "T1499.002",
+        "T1498"
+      ],
+      "retrieved": [
+        "T1499",
+        "T1499.002",
+        "T1498",
+        "T1499.003",
+        "T1499.001"
+      ],
+      "top_scores": [
+        0.686857,
+        0.613216,
+        0.600608,
+        0.593495,
+        0.584131
+      ],
+      "first_hit_rank": 1,
+      "hit@1": true,
+      "hit@3": true,
+      "hit@5": true
+    },
+    {
+      "id": "botnet-c2-beacon",
+      "expected": [
+        "T1071",
+        "T1071.001",
+        "T1102",
+        "T1008"
+      ],
+      "retrieved": [
+        "T1071.001",
+        "T1071",
+        "T1095",
+        "T1048",
+        "T1041"
+      ],
+      "top_scores": [
+        0.629423,
+        0.610661,
+        0.578877,
+        0.542152,
+        0.530551
+      ],
+      "first_hit_rank": 1,
+      "hit@1": true,
+      "hit@3": true,
+      "hit@5": true
+    },
+    {
+      "id": "botnet-encrypted-channel",
+      "expected": [
+        "T1573",
+        "T1573.001",
+        "T1573.002",
+        "T1071.001",
+        "T1071"
+      ],
+      "retrieved": [
+        "T1071.001",
+        "T1071",
+        "T1095",
+        "T1048",
+        "T1041"
+      ],
+      "top_scores": [
+        0.649207,
+        0.60501,
+        0.558061,
+        0.557221,
+        0.552629
+      ],
+      "first_hit_rank": 1,
+      "hit@1": true,
+      "hit@3": true,
+      "hit@5": true
+    },
+    {
+      "id": "botnet-dns-tunnel",
+      "expected": [
+        "T1071.004",
+        "T1568",
+        "T1568.002",
+        "T1071"
+      ],
+      "retrieved": [
+        "T1071.001",
+        "T1071.004",
+        "T1071",
+        "T1498.001",
+        "T1095"
+      ],
+      "top_scores": [
+        0.588312,
+        0.582342,
+        0.561359,
+        0.549682,
+        0.541294
+      ],
+      "first_hit_rank": 2,
+      "hit@1": false,
+      "hit@3": true,
+      "hit@5": true
+    },
+    {
+      "id": "botnet-tool-download",
+      "expected": [
+        "T1105",
+        "T1071.001",
+        "T1071"
+      ],
+      "retrieved": [
+        "T1071.001",
+        "T1071",
+        "T1095",
+        "T1041",
+        "T1048"
+      ],
+      "top_scores": [
+        0.651926,
+        0.605999,
+        0.554876,
+        0.539162,
+        0.53871
+      ],
+      "first_hit_rank": 1,
+      "hit@1": true,
+      "hit@3": true,
+      "hit@5": true
+    },
+    {
+      "id": "webattack-brute-force",
+      "expected": [
+        "T1110",
+        "T1110.001",
+        "T1110.003",
+        "T1190"
+      ],
+      "retrieved": [
+        "T1505.003",
+        "T1071.001",
+        "T1499.002",
+        "T1048",
+        "T1189"
+      ],
+      "top_scores": [
+        0.583275,
+        0.482351,
+        0.458848,
+        0.444637,
+        0.410487
+      ],
+      "first_hit_rank": null,
+      "hit@1": false,
+      "hit@3": false,
+      "hit@5": false
+    },
+    {
+      "id": "webattack-xss",
+      "expected": [
+        "T1059.007",
+        "T1190",
+        "T1189"
+      ],
+      "retrieved": [
+        "T1505.003",
+        "T1071.001",
+        "T1499.002",
+        "T1048",
+        "T1190"
+      ],
+      "top_scores": [
+        0.59004,
+        0.491679,
+        0.460713,
+        0.445446,
+        0.430647
+      ],
+      "first_hit_rank": 5,
+      "hit@1": false,
+      "hit@3": false,
+      "hit@5": true
+    },
+    {
+      "id": "webattack-sqli",
+      "expected": [
+        "T1190",
+        "T1505.003",
+        "T1059.007"
+      ],
+      "retrieved": [
+        "T1505.003",
+        "T1071.001",
+        "T1499.002",
+        "T1048",
+        "T1498"
+      ],
+      "top_scores": [
+        0.565251,
+        0.487158,
+        0.475313,
+        0.439951,
+        0.425924
+      ],
+      "first_hit_rank": 1,
+      "hit@1": true,
+      "hit@3": true,
+      "hit@5": true
+    },
+    {
+      "id": "webattack-webshell",
+      "expected": [
+        "T1505.003",
+        "T1190"
+      ],
+      "retrieved": [
+        "T1505.003",
+        "T1071.001",
+        "T1048",
+        "T1499.002",
+        "T1190"
+      ],
+      "top_scores": [
+        0.565353,
+        0.485946,
+        0.459338,
+        0.457648,
+        0.411697
+      ],
+      "first_hit_rank": 1,
+      "hit@1": true,
+      "hit@3": true,
+      "hit@5": true
+    },
+    {
+      "id": "eve-ssh-brute",
+      "expected": [
+        "T1110",
+        "T1110.001",
+        "T1021.001",
+        "T1021"
+      ],
+      "retrieved": [
+        "T1110",
+        "T1110.002",
+        "T1110.001",
+        "T1110.003",
+        "T1110.004"
+      ],
+      "top_scores": [
+        0.565263,
+        0.519158,
+        0.499283,
+        0.494385,
+        0.459921
+      ],
+      "first_hit_rank": 1,
+      "hit@1": true,
+      "hit@3": true,
+      "hit@5": true
+    },
+    {
+      "id": "eve-exploit-kit",
+      "expected": [
+        "T1189",
+        "T1190",
+        "T1204"
+      ],
+      "retrieved": [
+        "T1189",
+        "T1204",
+        "T1566",
+        "T1059.007",
+        "T1071.001"
+      ],
+      "top_scores": [
+        0.606279,
+        0.500125,
+        0.476813,
+        0.472883,
+        0.469864
+      ],
+      "first_hit_rank": 1,
+      "hit@1": true,
+      "hit@3": true,
+      "hit@5": true
+    }
+  ]
+}

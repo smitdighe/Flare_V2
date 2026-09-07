@@ -1,0 +1,1582 @@
+{
+  "corpus_sha256": "d3b69d1585f8179bc3f75a83505edcc2faa142c3e6366bb78a5f22878cede1a3",
+  "attack_version": "19.2",
+  "model": "all-MiniLM-L6-v2 int8 ONNX",
+  "dimensions": 384,
+  "chunk_count": 313,
+  "built_at": "2026-09-04T16:07:48.100913+00:00",
+  "weight_checksums": {
+    "model_quantized.onnx": "afdb6f1a0e45b715d0bb9b11772f032c399babd23bfc31fed1c170afc848bdb1",
+    "tokenizer.json": "da0e79933b9ed51798a3ae27893d3c5fa4a201126cef75586296df9b4d2c62a0",
+    "tokenizer_config.json": "9261e7d79b44c8195c1cada2b453e55b00aeb81e907a6664974b4d7776172ab3",
+    "special_tokens_map.json": "b6d346be366a7d1d48332dbc9fdf3bf8960b5d879522b7799ddba59e76237ee3",
+    "config.json": "7135149f7cffa1a573466c6e4d8423ed73b62fd2332c575bf738a0d033f70df7"
+  },
+  "chunks": [
+    {
+      "technique_id": "T1008",
+      "section": "summary",
+      "text": "T1008 Fallback Channels (command and control). Fallback Channels."
+    },
+    {
+      "technique_id": "T1008",
+      "section": "description-0",
+      "text": "T1008 Fallback Channels (command and control). Adversaries may use fallback or alternate communication channels if the primary channel is compromised or inaccessible in order to maintain reliable command and control and to avoid data transfer thresholds."
+    },
+    {
+      "technique_id": "T1008",
+      "section": "detection-0",
+      "text": "T1008 Fallback Channels (command and control). Behavioral Detection of Fallback or Alternate C2 Channels"
+    },
+    {
+      "technique_id": "T1008",
+      "section": "mitigations",
+      "text": "T1008 Fallback Channels (command and control). Mitigations: Network Intrusion Prevention."
+    },
+    {
+      "technique_id": "T1016",
+      "section": "summary",
+      "text": "T1016 System Network Configuration Discovery (discovery). System Network Configuration Discovery."
+    },
+    {
+      "technique_id": "T1016",
+      "section": "description-0",
+      "text": "T1016 System Network Configuration Discovery (discovery). Adversaries may look for details about the network configuration and settings, such as IP and/or MAC addresses, of systems they access or through information discovery of remote systems. Several operating system administration utilities exist that can be used to gather this information. Examples include [Arp](https://attack.mitre.org/software/S0099), [ipconfig](https://attack.mitre.org/software/S0100)/[ifconfig](https://attack.mitre.org/software/S0101), [nbtstat](https://attack.mitre.org/software/S0102), and [route](https://attack.mitre.org/software/S0103). Adversaries may also leverage a [Network Device CLI](https://attack.mitre.org/techniques/T1059/008) on network devices to gather information about configurations and settings, such as IP addresses of configured interfaces and static/dynamic routes (e.g."
+    },
+    {
+      "technique_id": "T1016",
+      "section": "description-1",
+      "text": "T1016 System Network Configuration Discovery (discovery). <code>show ip route</code>, <code>show ip interface</code>).(Citation: US-CERT-TA18-106A)(Citation: Mandiant APT41 Global Intrusion ) On ESXi, adversaries may leverage esxcli to gather network configuration information. For example, the command `esxcli network nic list` will retrieve the MAC address, while `esxcli network ip interface ipv4 get` will retrieve the local IPv4 address.(Citation: Trellix Rnasomhouse 2024) Adversaries may use the information from [System Network Configuration Discovery](https://attack.mitre.org/techniques/T1016) during automated discovery to shape follow-on behaviors, including determining certain access within the target network and what actions to do next."
+    },
+    {
+      "technique_id": "T1016",
+      "section": "detection-0",
+      "text": "T1016 System Network Configuration Discovery (discovery). Behavioral Detection of System Network Configuration Discovery"
+    },
+    {
+      "technique_id": "T1018",
+      "section": "summary",
+      "text": "T1018 Remote System Discovery (discovery). Remote System Discovery."
+    },
+    {
+      "technique_id": "T1018",
+      "section": "description-0",
+      "text": "T1018 Remote System Discovery (discovery). Adversaries may attempt to get a listing of other systems by IP address, hostname, or other logical identifier on a network that may be used for Lateral Movement from the current system. Functionality could exist within remote access tools to enable this, but utilities available on the operating system could also be used such as [Ping](https://attack.mitre.org/software/S0097), <code>net view</code> using [Net](https://attack.mitre.org/software/S0039), or, on ESXi servers, `esxcli network diag ping`. Adversaries may also analyze data from local host files (ex: <code>C:\\Windows\\System32\\Drivers\\etc\\hosts</code> or <code>/etc/hosts</code>) or other passive means (such as local [Arp](https://attack.mitre.org/software/S0099) cache entries) in order to discover the presence of remote systems in an environment."
+    },
+    {
+      "technique_id": "T1018",
+      "section": "description-1",
+      "text": "T1018 Remote System Discovery (discovery). Adversaries may also target discovery of network infrastructure as well as leverage [Network Device CLI](https://attack.mitre.org/techniques/T1059/008) commands on network devices to gather detailed information about systems within a network (e.g. <code>show cdp neighbors</code>, <code>show arp</code>).(Citation: US-CERT-TA18-106A)(Citation: CISA AR21-126A FIVEHANDS May 2021)"
+    },
+    {
+      "technique_id": "T1018",
+      "section": "detection-0",
+      "text": "T1018 Remote System Discovery (discovery). Detection Strategy for Remote System Enumeration Behavior"
+    },
+    {
+      "technique_id": "T1021.001",
+      "section": "summary",
+      "text": "T1021.001 Remote Desktop Protocol (lateral movement). Remote Desktop Protocol."
+    },
+    {
+      "technique_id": "T1021.001",
+      "section": "description-0",
+      "text": "T1021.001 Remote Desktop Protocol (lateral movement). Adversaries may use [Valid Accounts](https://attack.mitre.org/techniques/T1078) to log into a computer using the Remote Desktop Protocol (RDP). The adversary may then perform actions as the logged-on user. Remote desktop is a common feature in operating systems. It allows a user to log into an interactive session with a system desktop graphical user interface on a remote system. Microsoft refers to its implementation of the Remote Desktop Protocol (RDP) as Remote Desktop Services (RDS).(Citation: TechNet Remote Desktop Services) Adversaries may connect to a remote system over RDP/RDS to expand access if the service is enabled and allows access to accounts with known credentials. Adversaries will likely use Credential Access techniques to acquire credentials to use with RDP."
+    },
+    {
+      "technique_id": "T1021.001",
+      "section": "description-1",
+      "text": "T1021.001 Remote Desktop Protocol (lateral movement). Adversaries may also use RDP in conjunction with the [Accessibility Features](https://attack.mitre.org/techniques/T1546/008) or [Terminal Services DLL](https://attack.mitre.org/techniques/T1505/005) for Persistence.(Citation: Alperovitch Malware)"
+    },
+    {
+      "technique_id": "T1021.001",
+      "section": "detection-0",
+      "text": "T1021.001 Remote Desktop Protocol (lateral movement). Multi-event Detection Strategy for RDP-Based Remote Logins and Post-Access Activity"
+    },
+    {
+      "technique_id": "T1021.001",
+      "section": "mitigations",
+      "text": "T1021.001 Remote Desktop Protocol (lateral movement). Mitigations: Audit; Disable or Remove Feature or Program; Limit Access to Resource Over Network; Multi-factor Authentication; Network Segmentation; Operating System Configuration; Privileged Account Management; User Account Management."
+    },
+    {
+      "technique_id": "T1021",
+      "section": "summary",
+      "text": "T1021 Remote Services (lateral movement). Remote Services."
+    },
+    {
+      "technique_id": "T1021",
+      "section": "description-0",
+      "text": "T1021 Remote Services (lateral movement). Adversaries may use [Valid Accounts](https://attack.mitre.org/techniques/T1078) to log into a service that accepts remote connections, such as telnet, SSH, and VNC. The adversary may then perform actions as the logged-on user. In an enterprise environment, servers and workstations can be organized into domains. Domains provide centralized identity management, allowing users to login using one set of credentials across the entire network."
+    },
+    {
+      "technique_id": "T1021",
+      "section": "description-1",
+      "text": "T1021 Remote Services (lateral movement). If an adversary is able to obtain a set of valid domain credentials, they could login to many different machines using remote access protocols such as secure shell (SSH) or remote desktop protocol (RDP).(Citation: SSH Secure Shell)(Citation: TechNet Remote Desktop Services) They could also login to accessible SaaS or IaaS services, such as those that federate their identities to the domain, or management platforms for internal virtualization environments such as VMware vCenter. Legitimate applications (such as [Software Deployment Tools](https://attack.mitre.org/techniques/T1072) and other administrative programs) may utilize [Remote Services](https://attack.mitre.org/techniques/T1021) to access remote hosts. For example, Apple Remote Desktop (ARD) on macOS is native software used for remote management."
+    },
+    {
+      "technique_id": "T1021",
+      "section": "description-2",
+      "text": "T1021 Remote Services (lateral movement). ARD leverages a blend of protocols, including [VNC](https://attack.mitre.org/techniques/T1021/005) to send the screen and control buffers and [SSH](https://attack.mitre.org/techniques/T1021/004) for secure file transfer.(Citation: Remote Management MDM macOS)(Citation: Kickstart Apple Remote Desktop commands)(Citation: Apple Remote Desktop Admin Guide 3.3) Adversaries can abuse applications such as ARD to gain remote code execution and perform lateral movement. In versions of macOS prior to 10.14, an adversary can escalate an SSH session to an ARD session which enables an adversary to accept TCC (Transparency, Consent, and Control) prompts without user interaction and gain access to data.(Citation: FireEye 2019 Apple Remote Desktop)(Citation: Lockboxx ARD 2019)(Citation: Kickstart Apple Remote Desktop commands)"
+    },
+    {
+      "technique_id": "T1021",
+      "section": "detection-0",
+      "text": "T1021 Remote Services (lateral movement). Behavioral Detection Strategy for Remote Service Logins and Post-Access Activity"
+    },
+    {
+      "technique_id": "T1021",
+      "section": "mitigations",
+      "text": "T1021 Remote Services (lateral movement). Mitigations: Audit; Disable or Remove Feature or Program; Limit Access to Resource Over Network; Multi-factor Authentication; Password Policies; User Account Management."
+    },
+    {
+      "technique_id": "T1027",
+      "section": "summary",
+      "text": "T1027 Obfuscated Files or Information (stealth). Obfuscated Files or Information."
+    },
+    {
+      "technique_id": "T1027",
+      "section": "description-0",
+      "text": "T1027 Obfuscated Files or Information (stealth). Adversaries may attempt to make an executable or file difficult to discover or analyze by encrypting, encoding, or otherwise obfuscating its contents on the system or in transit. This is common behavior that can be used across different platforms and the network to evade defenses. Payloads may be compressed, archived, or encrypted in order to avoid detection. These payloads may be used during Initial Access or later to mitigate detection. Sometimes a user's action may be required to open and [Deobfuscate/Decode Files or Information](https://attack.mitre.org/techniques/T1140) for [User Execution](https://attack.mitre.org/techniques/T1204)."
+    },
+    {
+      "technique_id": "T1027",
+      "section": "description-1",
+      "text": "T1027 Obfuscated Files or Information (stealth). The user may also be required to input a password to open a password protected compressed/encrypted file that was provided by the adversary.(Citation: Volexity PowerDuke November 2016) Adversaries may also use compressed or archived scripts, such as JavaScript. Portions of files can also be encoded to hide the plain-text strings that would otherwise help defenders with discovery.(Citation: Linux/Cdorked.A We Live Security Analysis) Payloads may also be split into separate, seemingly benign files that only reveal malicious functionality when reassembled.(Citation: Carbon Black Obfuscation Sept 2016) Adversaries may also abuse [Command Obfuscation](https://attack.mitre.org/techniques/T1027/010) to obscure commands executed from payloads or directly via [Command and Scripting Interpreter](https://attack.mitre.org/techniques/T1059)."
+    },
+    {
+      "technique_id": "T1027",
+      "section": "description-2",
+      "text": "T1027 Obfuscated Files or Information (stealth). Environment variables, aliases, characters, and other platform/language specific semantics can be used to evade signature based detections and application control mechanisms.(Citation: FireEye Obfuscation June 2017)(Citation: FireEye Revoke-Obfuscation July 2017)(Citation: PaloAlto EncodedCommand March 2017)"
+    },
+    {
+      "technique_id": "T1027",
+      "section": "detection-0",
+      "text": "T1027 Obfuscated Files or Information (stealth). Behavioral Detection of Obfuscated Files or Information"
+    },
+    {
+      "technique_id": "T1027",
+      "section": "mitigations",
+      "text": "T1027 Obfuscated Files or Information (stealth). Mitigations: Antivirus/Antimalware; Audit; Behavior Prevention on Endpoint; User Training."
+    },
+    {
+      "technique_id": "T1030",
+      "section": "summary",
+      "text": "T1030 Data Transfer Size Limits (exfiltration). Data Transfer Size Limits."
+    },
+    {
+      "technique_id": "T1030",
+      "section": "description-0",
+      "text": "T1030 Data Transfer Size Limits (exfiltration). An adversary may exfiltrate data in fixed size chunks instead of whole files or limit packet sizes below certain thresholds. This approach may be used to avoid triggering network data transfer threshold alerts."
+    },
+    {
+      "technique_id": "T1030",
+      "section": "detection-0",
+      "text": "T1030 Data Transfer Size Limits (exfiltration). Detection Strategy for Data Transfer Size Limits and Chunked Exfiltration"
+    },
+    {
+      "technique_id": "T1030",
+      "section": "mitigations",
+      "text": "T1030 Data Transfer Size Limits (exfiltration). Mitigations: Network Intrusion Prevention."
+    },
+    {
+      "technique_id": "T1040",
+      "section": "summary",
+      "text": "T1040 Network Sniffing (credential access, discovery). Network Sniffing."
+    },
+    {
+      "technique_id": "T1040",
+      "section": "description-0",
+      "text": "T1040 Network Sniffing (credential access, discovery). Adversaries may passively sniff network traffic to capture information about an environment, including authentication material passed over the network. Network sniffing refers to using the network interface on a system to monitor or capture information sent over a wired or wireless connection. An adversary may place a network interface into promiscuous mode to passively access data in transit over the network, or use span ports to capture a larger amount of data. Data captured via this technique may include user credentials, especially those sent over an insecure, unencrypted protocol. Techniques for name service resolution poisoning, such as [Name Resolution Poisoning and SMB Relay](https://attack.mitre.org/techniques/T1557/001), can also be used to capture credentials to websites, proxies, and internal systems by redirecting traffic to an adversary."
+    },
+    {
+      "technique_id": "T1040",
+      "section": "description-1",
+      "text": "T1040 Network Sniffing (credential access, discovery). Network sniffing may reveal configuration details, such as running services, version numbers, and other network characteristics (e.g. IP addresses, hostnames, VLAN IDs) necessary for subsequent [Lateral Movement](https://attack.mitre.org/tactics/TA0008) and/or [Stealth](https://attack.mitre.org/tactics/TA0005) activities. Adversaries may likely also utilize network sniffing during [Adversary-in-the-Middle](https://attack.mitre.org/techniques/T1557) (AiTM) to passively gain additional knowledge about the environment. In cloud-based environments, adversaries may still be able to use traffic mirroring services to sniff network traffic from virtual machines."
+    },
+    {
+      "technique_id": "T1040",
+      "section": "description-2",
+      "text": "T1040 Network Sniffing (credential access, discovery). For example, AWS Traffic Mirroring, GCP Packet Mirroring, and Azure vTap allow users to define specified instances to collect traffic from and specified targets to send collected traffic to.(Citation: AWS Traffic Mirroring)(Citation: GCP Packet Mirroring)(Citation: Azure Virtual Network TAP) Often, much of this traffic will be in cleartext due to the use of TLS termination at the load balancer level to reduce the strain of encrypting and decrypting traffic.(Citation: Rhino Security Labs AWS VPC Traffic Mirroring)(Citation: SpecterOps AWS Traffic Mirroring) The adversary can then use exfiltration techniques such as Transfer Data to Cloud Account in order to access the sniffed traffic.(Citation: Rhino Security Labs AWS VPC Traffic Mirroring) On network devices, adversaries may perform network captures using [Network Device CLI](https://attack.mitre.org/techniques/T1059/008) commands such as"
+    },
+    {
+      "technique_id": "T1040",
+      "section": "description-3",
+      "text": "T1040 Network Sniffing (credential access, discovery). `monitor capture`.(Citation: US-CERT-TA18-106A)(Citation: capture_embedded_packet_on_software)"
+    },
+    {
+      "technique_id": "T1040",
+      "section": "detection-0",
+      "text": "T1040 Network Sniffing (credential access, discovery). Detection Strategy for Network Sniffing Across Platforms"
+    },
+    {
+      "technique_id": "T1040",
+      "section": "mitigations",
+      "text": "T1040 Network Sniffing (credential access, discovery). Mitigations: Encrypt Sensitive Information; Multi-factor Authentication; Network Segmentation; User Account Management."
+    },
+    {
+      "technique_id": "T1041",
+      "section": "summary",
+      "text": "T1041 Exfiltration Over C2 Channel (exfiltration). Exfiltration Over C2 Channel."
+    },
+    {
+      "technique_id": "T1041",
+      "section": "description-0",
+      "text": "T1041 Exfiltration Over C2 Channel (exfiltration). Adversaries may steal data by exfiltrating it over an existing command and control channel. Stolen data is encoded into the normal communications channel using the same protocol as command and control communications."
+    },
+    {
+      "technique_id": "T1041",
+      "section": "detection-0",
+      "text": "T1041 Exfiltration Over C2 Channel (exfiltration). Detection Strategy for Exfiltration Over C2 Channel"
+    },
+    {
+      "technique_id": "T1041",
+      "section": "mitigations",
+      "text": "T1041 Exfiltration Over C2 Channel (exfiltration). Mitigations: Data Loss Prevention; Network Intrusion Prevention."
+    },
+    {
+      "technique_id": "T1046",
+      "section": "summary",
+      "text": "T1046 Network Service Discovery (discovery). Network Service Discovery."
+    },
+    {
+      "technique_id": "T1046",
+      "section": "description-0",
+      "text": "T1046 Network Service Discovery (discovery). Adversaries may attempt to get a listing of services running on remote hosts and local network infrastructure devices, including those that may be vulnerable to remote software exploitation. Common methods to acquire this information include port, vulnerability, and/or wordlist scans using tools that are brought onto a system.(Citation: CISA AR21-126A FIVEHANDS May 2021) Within cloud environments, adversaries may attempt to discover services running on other cloud hosts. Additionally, if the cloud environment is connected to a on-premises environment, adversaries may be able to identify services running on non-cloud systems as well. Within macOS environments, adversaries may use the native Bonjour application to discover services running on other macOS hosts within a network."
+    },
+    {
+      "technique_id": "T1046",
+      "section": "description-1",
+      "text": "T1046 Network Service Discovery (discovery). The Bonjour mDNSResponder daemon automatically registers and advertises a host\u2019s registered services on the network. For example, adversaries can use a mDNS query (such as <code>dns-sd -B _ssh._tcp .</code>) to find other systems broadcasting the ssh service.(Citation: apple doco bonjour description)(Citation: macOS APT Activity Bradley)"
+    },
+    {
+      "technique_id": "T1046",
+      "section": "detection-0",
+      "text": "T1046 Network Service Discovery (discovery). Behavioral Detection Strategy for Network Service Discovery Across Platforms"
+    },
+    {
+      "technique_id": "T1046",
+      "section": "mitigations",
+      "text": "T1046 Network Service Discovery (discovery). Mitigations: Disable or Remove Feature or Program; Network Intrusion Prevention; Network Segmentation."
+    },
+    {
+      "technique_id": "T1048",
+      "section": "summary",
+      "text": "T1048 Exfiltration Over Alternative Protocol (exfiltration). Exfiltration Over Alternative Protocol."
+    },
+    {
+      "technique_id": "T1048",
+      "section": "description-0",
+      "text": "T1048 Exfiltration Over Alternative Protocol (exfiltration). Adversaries may steal data by exfiltrating it over a different protocol than that of the existing command and control channel. The data may also be sent to an alternate network location from the main command and control server. Alternate protocols include FTP, SMTP, HTTP/S, DNS, SMB, or any other network protocol not being used as the main command and control channel. Adversaries may also opt to encrypt and/or obfuscate these alternate channels."
+    },
+    {
+      "technique_id": "T1048",
+      "section": "description-1",
+      "text": "T1048 Exfiltration Over Alternative Protocol (exfiltration). [Exfiltration Over Alternative Protocol](https://attack.mitre.org/techniques/T1048) can be done using various common operating system utilities such as [Net](https://attack.mitre.org/software/S0039)/SMB or FTP.(Citation: Palo Alto OilRig Oct 2016) On macOS and Linux <code>curl</code> may be used to invoke protocols such as HTTP/S or FTP/S to exfiltrate data from a system.(Citation: 20 macOS Common Tools and Techniques) Many IaaS and SaaS platforms (such as Microsoft Exchange, Microsoft SharePoint, GitHub, and AWS S3) support the direct download of files, emails, source code, and other sensitive information via the web console or [Cloud API](https://attack.mitre.org/techniques/T1059/009)."
+    },
+    {
+      "technique_id": "T1048",
+      "section": "detection-0",
+      "text": "T1048 Exfiltration Over Alternative Protocol (exfiltration). Behavioral Detection Strategy for Exfiltration Over Alternative Protocol"
+    },
+    {
+      "technique_id": "T1048",
+      "section": "mitigations",
+      "text": "T1048 Exfiltration Over Alternative Protocol (exfiltration). Mitigations: Data Loss Prevention; Filter Network Traffic; Network Intrusion Prevention; Network Segmentation; Restrict File and Directory Permissions; User Account Management."
+    },
+    {
+      "technique_id": "T1049",
+      "section": "summary",
+      "text": "T1049 System Network Connections Discovery (discovery). System Network Connections Discovery."
+    },
+    {
+      "technique_id": "T1049",
+      "section": "description-0",
+      "text": "T1049 System Network Connections Discovery (discovery). Adversaries may attempt to get a listing of network connections to or from the compromised system they are currently accessing or from remote systems by querying for information over the network. An adversary who gains access to a system that is part of a cloud-based environment may map out Virtual Private Clouds or Virtual Networks in order to determine what systems and services are connected. The actions performed are likely the same types of discovery techniques depending on the operating system, but the resulting information may include details about the networked cloud environment relevant to the adversary's goals."
+    },
+    {
+      "technique_id": "T1049",
+      "section": "description-1",
+      "text": "T1049 System Network Connections Discovery (discovery). Cloud providers may have different ways in which their virtual networks operate.(Citation: Amazon AWS VPC Guide)(Citation: Microsoft Azure Virtual Network Overview)(Citation: Google VPC Overview) Similarly, adversaries who gain access to network devices may also perform similar discovery activities to gather information about connected systems and services. Utilities and commands that acquire this information include [netstat](https://attack.mitre.org/software/S0104), \"net use,\" and \"net session\" with [Net](https://attack.mitre.org/software/S0039). In Mac and Linux, [netstat](https://attack.mitre.org/software/S0104) and <code>lsof</code> can be used to list current connections. <code>who -a</code> and <code>w</code> can be used to show which users are currently logged in, similar to \"net session\"."
+    },
+    {
+      "technique_id": "T1049",
+      "section": "description-2",
+      "text": "T1049 System Network Connections Discovery (discovery). Additionally, built-in features native to network devices and [Network Device CLI](https://attack.mitre.org/techniques/T1059/008) may be used (e.g. <code>show ip sockets</code>, <code>show tcp brief</code>).(Citation: US-CERT-TA18-106A) On ESXi servers, the command `esxi network ip connection list` can be used to list active network connections.(Citation: Sygnia ESXi Ransomware 2025)"
+    },
+    {
+      "technique_id": "T1049",
+      "section": "detection-0",
+      "text": "T1049 System Network Connections Discovery (discovery). Detection of System Network Connections Discovery Across Platforms"
+    },
+    {
+      "technique_id": "T1059.007",
+      "section": "summary",
+      "text": "T1059.007 JavaScript (execution). JavaScript."
+    },
+    {
+      "technique_id": "T1059.007",
+      "section": "description-0",
+      "text": "T1059.007 JavaScript (execution). Adversaries may abuse various implementations of JavaScript for execution. JavaScript (JS) is a platform-independent scripting language (compiled just-in-time at runtime) commonly associated with scripts in webpages, though JS can be executed in runtime environments outside the browser.(Citation: NodeJS) JScript is the Microsoft implementation of the same scripting standard. JScript is interpreted via the Windows Script engine and thus integrated with many components of Windows such as the [Component Object Model](https://attack.mitre.org/techniques/T1559/001) and Internet Explorer HTML Application (HTA) pages.(Citation: JScrip May 2018)(Citation: Microsoft JScript 2007)(Citation: Microsoft Windows Scripts) JavaScript for Automation (JXA) is a macOS scripting language based on JavaScript, included as part of Apple\u2019s Open Scripting Architecture (OSA), that was introduced in OSX 10.10."
+    },
+    {
+      "technique_id": "T1059.007",
+      "section": "description-1",
+      "text": "T1059.007 JavaScript (execution). Apple\u2019s OSA provides scripting capabilities to control applications, interface with the operating system, and bridge access into the rest of Apple\u2019s internal APIs. As of OSX 10.10, OSA only supports two languages, JXA and [AppleScript](https://attack.mitre.org/techniques/T1059/002). Scripts can be executed via the command line utility <code>osascript</code>, they can be compiled into applications or script files via <code>osacompile</code>, and they can be compiled and executed in memory of other programs by leveraging the OSAKit Framework.(Citation: Apple About Mac Scripting 2016)(Citation: SpecterOps JXA 2020)(Citation: SentinelOne macOS Red Team)(Citation: Red Canary Silver Sparrow Feb2021)(Citation: MDSec macOS JXA and VSCode) Adversaries may abuse various implementations of JavaScript to execute various behaviors."
+    },
+    {
+      "technique_id": "T1059.007",
+      "section": "description-2",
+      "text": "T1059.007 JavaScript (execution). Common uses include hosting malicious scripts on websites as part of a [Drive-by Compromise](https://attack.mitre.org/techniques/T1189) or downloading and executing these script files as secondary payloads. Since these payloads are text-based, it is also very common for adversaries to obfuscate their content as part of [Obfuscated Files or Information](https://attack.mitre.org/techniques/T1027)."
+    },
+    {
+      "technique_id": "T1059.007",
+      "section": "detection-0",
+      "text": "T1059.007 JavaScript (execution). Cross-Platform Detection of JavaScript Execution Abuse"
+    },
+    {
+      "technique_id": "T1059.007",
+      "section": "mitigations",
+      "text": "T1059.007 JavaScript (execution). Mitigations: Behavior Prevention on Endpoint; Disable or Remove Feature or Program; Execution Prevention; Restrict Web-Based Content."
+    },
+    {
+      "technique_id": "T1071.001",
+      "section": "summary",
+      "text": "T1071.001 Web Protocols (command and control). Web Protocols."
+    },
+    {
+      "technique_id": "T1071.001",
+      "section": "description-0",
+      "text": "T1071.001 Web Protocols (command and control). Adversaries may communicate using application layer protocols associated with web traffic to avoid detection/network filtering by blending in with existing traffic. Commands to the remote system, and often the results of those commands, will be embedded within the protocol traffic between the client and server. Protocols such as HTTP/S(Citation: CrowdStrike Putter Panda) and WebSocket(Citation: Brazking-Websockets) that carry web traffic may be very common in environments. HTTP/S packets have many fields and headers in which data can be concealed. An adversary may abuse these protocols to communicate with systems under their control within a victim network while also mimicking normal, expected traffic."
+    },
+    {
+      "technique_id": "T1071.001",
+      "section": "detection-0",
+      "text": "T1071.001 Web Protocols (command and control). Detection of Web Protocol-Based C2 Over HTTP, HTTPS, or WebSockets"
+    },
+    {
+      "technique_id": "T1071.001",
+      "section": "mitigations",
+      "text": "T1071.001 Web Protocols (command and control). Mitigations: Filter Network Traffic; Network Intrusion Prevention."
+    },
+    {
+      "technique_id": "T1071.004",
+      "section": "summary",
+      "text": "T1071.004 DNS (command and control). DNS."
+    },
+    {
+      "technique_id": "T1071.004",
+      "section": "description-0",
+      "text": "T1071.004 DNS (command and control). Adversaries may communicate using the Domain Name System (DNS) application layer protocol to avoid detection/network filtering by blending in with existing traffic. Commands to the remote system, and often the results of those commands, will be embedded within the protocol traffic between the client and server. The DNS protocol serves an administrative function in computer networking and thus may be very common in environments. DNS traffic may also be allowed even before network authentication is completed. DNS packets contain many fields and headers in which data can be concealed."
+    },
+    {
+      "technique_id": "T1071.004",
+      "section": "description-1",
+      "text": "T1071.004 DNS (command and control). Often known as DNS tunneling, adversaries may abuse DNS to communicate with systems under their control within a victim network while also mimicking normal, expected traffic.(Citation: PAN DNS Tunneling)(Citation: Medium DnsTunneling) DNS beaconing may be used to send commands to remote systems via DNS queries. A DNS beacon is created by tunneling DNS traffic (i.e. [Protocol Tunneling](https://attack.mitre.org/techniques/T1572)). The commands may be embedded into different DNS records, for example, TXT or A records.(Citation: OilRig Uses Updated BONDUPDATER to Target Middle Eastern Government) DNS beacons may be difficult to detect because the beacons infrequently communicate with infected devices.(Citation: DNS Beacons) Infrequent communication conceals the malicious DNS traffic with normal DNS traffic."
+    },
+    {
+      "technique_id": "T1071.004",
+      "section": "detection-0",
+      "text": "T1071.004 DNS (command and control). Behavioral Detection of DNS Tunneling and Application Layer Abuse"
+    },
+    {
+      "technique_id": "T1071.004",
+      "section": "mitigations",
+      "text": "T1071.004 DNS (command and control). Mitigations: Filter Network Traffic; Network Intrusion Prevention."
+    },
+    {
+      "technique_id": "T1071",
+      "section": "summary",
+      "text": "T1071 Application Layer Protocol (command and control). Application Layer Protocol."
+    },
+    {
+      "technique_id": "T1071",
+      "section": "description-0",
+      "text": "T1071 Application Layer Protocol (command and control). Adversaries may communicate using OSI application layer protocols to avoid detection/network filtering by blending in with existing traffic. Commands to the remote system, and often the results of those commands, will be embedded within the protocol traffic between the client and server. Adversaries may utilize many different protocols, including those used for web browsing, transferring files, electronic mail, DNS, or publishing/subscribing. For connections that occur internally within an enclave (such as those between a proxy or pivot node and other nodes), commonly used protocols are SMB, SSH, or RDP.(Citation: Mandiant APT29 Eye Spy Email Nov 22)"
+    },
+    {
+      "technique_id": "T1071",
+      "section": "detection-0",
+      "text": "T1071 Application Layer Protocol (command and control). Detection of Command and Control Over Application Layer Protocols"
+    },
+    {
+      "technique_id": "T1071",
+      "section": "mitigations",
+      "text": "T1071 Application Layer Protocol (command and control). Mitigations: Filter Network Traffic; Network Intrusion Prevention."
+    },
+    {
+      "technique_id": "T1078",
+      "section": "summary",
+      "text": "T1078 Valid Accounts (stealth, persistence, privilege escalation, initial access). Valid Accounts."
+    },
+    {
+      "technique_id": "T1078",
+      "section": "description-0",
+      "text": "T1078 Valid Accounts (stealth, persistence, privilege escalation, initial access). Adversaries may obtain and abuse credentials of existing accounts as a means of gaining Initial Access, Persistence, Privilege Escalation, or Defense Evasion. Compromised credentials may be used to bypass access controls placed on various resources on systems within the network and may even be used for persistent access to remote systems and externally available services, such as VPNs, Outlook Web Access, network devices, and remote desktop.(Citation: volexity_0day_sophos_FW) Compromised credentials may also grant an adversary increased privilege to specific systems or access to restricted areas of the network. Adversaries may choose not to use malware or tools in conjunction with the legitimate access those credentials provide to make it harder to detect their presence."
+    },
+    {
+      "technique_id": "T1078",
+      "section": "description-1",
+      "text": "T1078 Valid Accounts (stealth, persistence, privilege escalation, initial access). In some cases, adversaries may abuse inactive accounts: for example, those belonging to individuals who are no longer part of an organization. Using these accounts may allow the adversary to evade detection, as the original account user will not be present to identify any anomalous activity taking place on their account.(Citation: CISA MFA PrintNightmare) The overlap of permissions for local, domain, and cloud accounts across a network of systems is of concern because the adversary may be able to pivot across accounts and systems to reach a high level of access (i.e., domain or enterprise administrator) to bypass access controls set within the enterprise.(Citation: TechNet Credential Theft)"
+    },
+    {
+      "technique_id": "T1078",
+      "section": "detection-0",
+      "text": "T1078 Valid Accounts (stealth, persistence, privilege escalation, initial access). Detection of Valid Account Abuse Across Platforms"
+    },
+    {
+      "technique_id": "T1078",
+      "section": "mitigations",
+      "text": "T1078 Valid Accounts (stealth, persistence, privilege escalation, initial access). Mitigations: Account Use Policies; Active Directory Configuration; Application Developer Guidance; Multi-factor Authentication; Password Policies; Privileged Account Management; User Account Management; User Training."
+    },
+    {
+      "technique_id": "T1090",
+      "section": "summary",
+      "text": "T1090 Proxy (command and control). Proxy."
+    },
+    {
+      "technique_id": "T1090",
+      "section": "description-0",
+      "text": "T1090 Proxy (command and control). Adversaries may use a connection proxy to direct network traffic between systems or act as an intermediary for network communications to a command and control server to avoid direct connections to their infrastructure. Many tools exist that enable traffic redirection through proxies or port redirection, including [HTRAN](https://attack.mitre.org/software/S0040), ZXProxy, and ZXPortMap. (Citation: Trend Micro APT Attack Tools) Adversaries use these types of proxies to manage command and control communications, reduce the number of simultaneous outbound network connections, provide resiliency in the face of connection loss, or to ride over existing trusted communications paths between victims to avoid suspicion. Adversaries may chain together multiple proxies to further disguise the source of malicious traffic."
+    },
+    {
+      "technique_id": "T1090",
+      "section": "description-1",
+      "text": "T1090 Proxy (command and control). Adversaries can also take advantage of routing schemes in Content Delivery Networks (CDNs) to proxy command and control traffic."
+    },
+    {
+      "technique_id": "T1090",
+      "section": "detection-0",
+      "text": "T1090 Proxy (command and control). Detection of Proxy Infrastructure Setup and Traffic Bridging"
+    },
+    {
+      "technique_id": "T1090",
+      "section": "mitigations",
+      "text": "T1090 Proxy (command and control). Mitigations: Filter Network Traffic; Network Intrusion Prevention; SSL/TLS Inspection."
+    },
+    {
+      "technique_id": "T1095",
+      "section": "summary",
+      "text": "T1095 Non-Application Layer Protocol (command and control). Non-Application Layer Protocol."
+    },
+    {
+      "technique_id": "T1095",
+      "section": "description-0",
+      "text": "T1095 Non-Application Layer Protocol (command and control). Adversaries may use an OSI non-application layer protocol for communication between host and C2 server or among infected hosts within a network. The list of possible protocols is extensive.(Citation: Wikipedia OSI) Specific examples include use of network layer protocols, such as the Internet Control Message Protocol (ICMP), transport layer protocols, such as the User Datagram Protocol (UDP), session layer protocols, such as Socket Secure (SOCKS), as well as redirected/tunneled protocols, such as Serial over LAN (SOL). ICMP communication between hosts is one example.(Citation: Cisco Synful Knock Evolution) Because ICMP is part of the Internet Protocol Suite, it is required to be implemented by all IP-compatible hosts.(Citation: Microsoft ICMP) However, it is not as commonly monitored as other Internet Protocols such as TCP or UDP and may be used by adversaries to hide communications."
+    },
+    {
+      "technique_id": "T1095",
+      "section": "description-1",
+      "text": "T1095 Non-Application Layer Protocol (command and control). In ESXi environments, adversaries may leverage the Virtual Machine Communication Interface (VMCI) for communication between guest virtual machines and the ESXi host. This traffic is similar to client-server communications on traditional network sockets but is localized to the physical machine running the ESXi host, meaning it does not traverse external networks (routers, switches). This results in communications that are invisible to external monitoring and standard networking tools like tcpdump, netstat, nmap, and Wireshark. By adding a VMCI backdoor to a compromised ESXi host, adversaries may persistently regain access from any guest VM to the compromised ESXi host\u2019s backdoor, regardless of network segmentation or firewall rules in place.(Citation: Google Cloud Threat Intelligence VMWare ESXi Zero-Day 2023)"
+    },
+    {
+      "technique_id": "T1095",
+      "section": "detection-0",
+      "text": "T1095 Non-Application Layer Protocol (command and control). Detection of Non-Application Layer Protocols for C2"
+    },
+    {
+      "technique_id": "T1095",
+      "section": "mitigations",
+      "text": "T1095 Non-Application Layer Protocol (command and control). Mitigations: Audit; Filter Network Traffic; Network Intrusion Prevention; Network Segmentation."
+    },
+    {
+      "technique_id": "T1102",
+      "section": "summary",
+      "text": "T1102 Web Service (command and control). Web Service."
+    },
+    {
+      "technique_id": "T1102",
+      "section": "description-0",
+      "text": "T1102 Web Service (command and control). Adversaries may use an existing, legitimate external Web service as a means for relaying data to/from a compromised system. Popular websites, cloud services, and social media acting as a mechanism for C2 may give a significant amount of cover due to the likelihood that hosts within a network are already communicating with them prior to a compromise. Using common services, such as those offered by Google, Microsoft, or Twitter, makes it easier for adversaries to hide in expected noise.(Citation: Broadcom BirdyClient Microsoft Graph API 2024) Web service providers commonly use SSL/TLS encryption, giving adversaries an added level of protection. Use of Web services may also protect back-end C2 infrastructure from discovery through malware binary analysis while also enabling operational resiliency (since this infrastructure may be dynamically changed)."
+    },
+    {
+      "technique_id": "T1102",
+      "section": "detection-0",
+      "text": "T1102 Web Service (command and control). Suspicious Use of Web Services for C2"
+    },
+    {
+      "technique_id": "T1102",
+      "section": "mitigations",
+      "text": "T1102 Web Service (command and control). Mitigations: Network Intrusion Prevention; Restrict Web-Based Content."
+    },
+    {
+      "technique_id": "T1105",
+      "section": "summary",
+      "text": "T1105 Ingress Tool Transfer (command and control). Ingress Tool Transfer."
+    },
+    {
+      "technique_id": "T1105",
+      "section": "description-0",
+      "text": "T1105 Ingress Tool Transfer (command and control). Adversaries may transfer tools or other files from an external system into a compromised environment. Tools or files may be copied from an external adversary-controlled system to the victim network through the command and control channel or through alternate protocols such as [ftp](https://attack.mitre.org/software/S0095). Once present, adversaries may also transfer/spread tools between victim devices within a compromised environment (i.e. [Lateral Tool Transfer](https://attack.mitre.org/techniques/T1570)). On Windows, adversaries may use various utilities to download tools, such as `copy`, `finger`, [certutil](https://attack.mitre.org/software/S0160), and [PowerShell](https://attack.mitre.org/techniques/T1059/001) commands such as <code>IEX(New-Object Net.WebClient).downloadString()</code> and <code>Invoke-WebRequest</code>."
+    },
+    {
+      "technique_id": "T1105",
+      "section": "description-1",
+      "text": "T1105 Ingress Tool Transfer (command and control). On Linux and macOS systems, a variety of utilities also exist, such as `curl`, `scp`, `sftp`, `tftp`, `rsync`, `finger`, and `wget`.(Citation: t1105_lolbas) A number of these tools, such as `wget`, `curl`, and `scp`, also exist on ESXi. After downloading a file, a threat actor may attempt to verify its integrity by checking its hash value (e.g., via `certutil -hashfile`).(Citation: Google Cloud Threat Intelligence COSCMICENERGY 2023) Adversaries may also abuse installers and package managers, such as `yum` or `winget`, to download tools to victim hosts."
+    },
+    {
+      "technique_id": "T1105",
+      "section": "description-2",
+      "text": "T1105 Ingress Tool Transfer (command and control). Adversaries have also abused file application features, such as the Windows `search-ms` protocol handler, to deliver malicious files to victims through remote file searches invoked by [User Execution](https://attack.mitre.org/techniques/T1204) (typically after interacting with [Phishing](https://attack.mitre.org/techniques/T1566) lures).(Citation: T1105: Trellix_search-ms) Files can also be transferred using various [Web Service](https://attack.mitre.org/techniques/T1102)s as well as native or otherwise present tools on the victim system.(Citation: PTSecurity Cobalt Dec 2016) In some cases, adversaries may be able to leverage services that sync between a web-based and an on-premises client, such as Dropbox or OneDrive, to transfer files onto victim systems."
+    },
+    {
+      "technique_id": "T1105",
+      "section": "description-3",
+      "text": "T1105 Ingress Tool Transfer (command and control). For example, by compromising a cloud account and logging into the service's web portal, an adversary may be able to trigger an automatic syncing process that transfers the file onto the victim's machine.(Citation: Dropbox Malware Sync)"
+    },
+    {
+      "technique_id": "T1105",
+      "section": "detection-0",
+      "text": "T1105 Ingress Tool Transfer (command and control). Detect Ingress Tool Transfers via Behavioral Chain"
+    },
+    {
+      "technique_id": "T1105",
+      "section": "mitigations",
+      "text": "T1105 Ingress Tool Transfer (command and control). Mitigations: Filter Network Traffic; Network Intrusion Prevention."
+    },
+    {
+      "technique_id": "T1110.001",
+      "section": "summary",
+      "text": "T1110.001 Password Guessing (credential access). Password Guessing."
+    },
+    {
+      "technique_id": "T1110.001",
+      "section": "description-0",
+      "text": "T1110.001 Password Guessing (credential access). Adversaries with no prior knowledge of legitimate credentials within the system or environment may guess passwords to attempt access to accounts. Without knowledge of the password for an account, an adversary may opt to systematically guess the password using a repetitive or iterative mechanism. An adversary may guess login credentials without prior knowledge of system or environment passwords during an operation by using a list of common passwords. Password guessing may or may not take into account the target's policies on password complexity or use policies that may lock accounts out after a number of failed attempts. Guessing passwords can be a risky option because it could cause numerous authentication failures and account lockouts, depending on the organization's login failure policies."
+    },
+    {
+      "technique_id": "T1110.001",
+      "section": "description-1",
+      "text": "T1110.001 Password Guessing (credential access). (Citation: Cylance Cleaver) Typically, management services over commonly used ports are used when guessing passwords. Commonly targeted services include the following: * SSH (22/TCP) * Telnet (23/TCP) * FTP (21/TCP) * NetBIOS / SMB / Samba (139/TCP & 445/TCP) * LDAP (389/TCP) * Kerberos (88/TCP) * RDP / Terminal Services (3389/TCP) * HTTP/HTTP Management Services (80/TCP & 443/TCP) * MSSQL (1433/TCP) * Oracle (1521/TCP) * MySQL (3306/TCP) * VNC (5900/TCP) * SNMP (161/UDP and 162/TCP/UDP) In addition to management services, adversaries may \"target single sign-on (SSO) and cloud-based applications utilizing federated authentication protocols,\" as well as externally facing email applications, such as Office 365.(Citation: US-CERT TA18-068A 2018)."
+    },
+    {
+      "technique_id": "T1110.001",
+      "section": "description-2",
+      "text": "T1110.001 Password Guessing (credential access). Further, adversaries may abuse network device interfaces (such as `wlanAPI`) to brute force accessible wifi-router(s) via wireless authentication protocols.(Citation: Trend Micro Emotet 2020) In default environments, LDAP and Kerberos connection attempts are less likely to trigger events over SMB, which creates Windows \"logon failure\" event ID 4625."
+    },
+    {
+      "technique_id": "T1110.001",
+      "section": "detection-0",
+      "text": "T1110.001 Password Guessing (credential access). Password Guessing via Multi-Source Authentication Failure Correlation"
+    },
+    {
+      "technique_id": "T1110.001",
+      "section": "mitigations",
+      "text": "T1110.001 Password Guessing (credential access). Mitigations: Account Use Policies; Multi-factor Authentication; Password Policies; Update Software."
+    },
+    {
+      "technique_id": "T1110.002",
+      "section": "summary",
+      "text": "T1110.002 Password Cracking (credential access). Password Cracking."
+    },
+    {
+      "technique_id": "T1110.002",
+      "section": "description-0",
+      "text": "T1110.002 Password Cracking (credential access). Adversaries may use password cracking to attempt to recover usable credentials, such as plaintext passwords, when credential material such as password hashes are obtained. [OS Credential Dumping](https://attack.mitre.org/techniques/T1003) can be used to obtain password hashes, this may only get an adversary so far when [Pass the Hash](https://attack.mitre.org/techniques/T1550/002) is not an option. Further, adversaries may leverage [Data from Configuration Repository](https://attack.mitre.org/techniques/T1602) in order to obtain hashed credentials for network devices.(Citation: US-CERT-TA18-106A) Techniques to systematically guess the passwords used to compute hashes are available, or the adversary may use a pre-computed rainbow table to crack hashes."
+    },
+    {
+      "technique_id": "T1110.002",
+      "section": "description-1",
+      "text": "T1110.002 Password Cracking (credential access). Cracking hashes is usually done on adversary-controlled systems outside of the target network.(Citation: Wikipedia Password cracking) The resulting plaintext password resulting from a successfully cracked hash may be used to log into systems, resources, and services in which the account has access."
+    },
+    {
+      "technique_id": "T1110.002",
+      "section": "detection-0",
+      "text": "T1110.002 Password Cracking (credential access). Post-Credential Dump Password Cracking Detection via Suspicious File Access and Hash Analysis Tools"
+    },
+    {
+      "technique_id": "T1110.002",
+      "section": "mitigations",
+      "text": "T1110.002 Password Cracking (credential access). Mitigations: Multi-factor Authentication; Password Policies."
+    },
+    {
+      "technique_id": "T1110.003",
+      "section": "summary",
+      "text": "T1110.003 Password Spraying (credential access). Password Spraying."
+    },
+    {
+      "technique_id": "T1110.003",
+      "section": "description-0",
+      "text": "T1110.003 Password Spraying (credential access). Adversaries may use a single or small list of commonly used passwords against many different accounts to attempt to acquire valid account credentials. Password spraying uses one password (e.g. 'Password01'), or a small list of commonly used passwords, that may match the complexity policy of the domain. Logins are attempted with that password against many different accounts on a network to avoid account lockouts that would normally occur when brute forcing a single account with many passwords. (Citation: BlackHillsInfosec Password Spraying) Typically, management services over commonly used ports are used when password spraying."
+    },
+    {
+      "technique_id": "T1110.003",
+      "section": "description-1",
+      "text": "T1110.003 Password Spraying (credential access). Commonly targeted services include the following: * SSH (22/TCP) * Telnet (23/TCP) * FTP (21/TCP) * NetBIOS / SMB / Samba (139/TCP & 445/TCP) * LDAP (389/TCP) * Kerberos (88/TCP) * RDP / Terminal Services (3389/TCP) * HTTP/HTTP Management Services (80/TCP & 443/TCP) * MSSQL (1433/TCP) * Oracle (1521/TCP) * MySQL (3306/TCP) * VNC (5900/TCP) In addition to management services, adversaries may \"target single sign-on (SSO) and cloud-based applications utilizing federated authentication protocols,\" as well as externally facing email applications, such as Office 365.(Citation: US-CERT TA18-068A 2018) In order to avoid detection thresholds, adversaries may deliberately throttle password spraying attempts to avoid triggering security alerting."
+    },
+    {
+      "technique_id": "T1110.003",
+      "section": "description-2",
+      "text": "T1110.003 Password Spraying (credential access). Additionally, adversaries may leverage LDAP and Kerberos authentication attempts, which are less likely to trigger high-visibility events such as Windows \"logon failure\" event ID 4625 that is commonly triggered by failed SMB connection attempts.(Citation: Microsoft Storm-0940)"
+    },
+    {
+      "technique_id": "T1110.003",
+      "section": "detection-0",
+      "text": "T1110.003 Password Spraying (credential access). Distributed Password Spraying via Authentication Failures Across Multiple Accounts"
+    },
+    {
+      "technique_id": "T1110.003",
+      "section": "mitigations",
+      "text": "T1110.003 Password Spraying (credential access). Mitigations: Account Use Policies; Multi-factor Authentication; Password Policies."
+    },
+    {
+      "technique_id": "T1110.004",
+      "section": "summary",
+      "text": "T1110.004 Credential Stuffing (credential access). Credential Stuffing."
+    },
+    {
+      "technique_id": "T1110.004",
+      "section": "description-0",
+      "text": "T1110.004 Credential Stuffing (credential access). Adversaries may use credentials obtained from breach dumps of unrelated accounts to gain access to target accounts through credential overlap. Occasionally, large numbers of username and password pairs are dumped online when a website or service is compromised and the user account credentials accessed. The information may be useful to an adversary attempting to compromise accounts by taking advantage of the tendency for users to use the same passwords across personal and business accounts. Credential stuffing is a risky option because it could cause numerous authentication failures and account lockouts, depending on the organization's login failure policies. Typically, management services over commonly used ports are used when stuffing credentials."
+    },
+    {
+      "technique_id": "T1110.004",
+      "section": "description-1",
+      "text": "T1110.004 Credential Stuffing (credential access). Commonly targeted services include the following: * SSH (22/TCP) * Telnet (23/TCP) * FTP (21/TCP) * NetBIOS / SMB / Samba (139/TCP & 445/TCP) * LDAP (389/TCP) * Kerberos (88/TCP) * RDP / Terminal Services (3389/TCP) * HTTP/HTTP Management Services (80/TCP & 443/TCP) * MSSQL (1433/TCP) * Oracle (1521/TCP) * MySQL (3306/TCP) * VNC (5900/TCP) In addition to management services, adversaries may \"target single sign-on (SSO) and cloud-based applications utilizing federated authentication protocols,\" as well as externally facing email applications, such as Office 365.(Citation: US-CERT TA18-068A 2018)"
+    },
+    {
+      "technique_id": "T1110.004",
+      "section": "detection-0",
+      "text": "T1110.004 Credential Stuffing (credential access). Credential Stuffing Detection via Reused Breached Credentials Across Services"
+    },
+    {
+      "technique_id": "T1110.004",
+      "section": "mitigations",
+      "text": "T1110.004 Credential Stuffing (credential access). Mitigations: Account Use Policies; Multi-factor Authentication; Password Policies; User Account Management."
+    },
+    {
+      "technique_id": "T1110",
+      "section": "summary",
+      "text": "T1110 Brute Force (credential access). Brute Force."
+    },
+    {
+      "technique_id": "T1110",
+      "section": "description-0",
+      "text": "T1110 Brute Force (credential access). Adversaries may use brute force techniques to gain access to accounts when passwords are unknown or when password hashes are obtained.(Citation: TrendMicro Pawn Storm Dec 2020) Without knowledge of the password for an account or set of accounts, an adversary may systematically guess the password using a repetitive or iterative mechanism.(Citation: Dragos Crashoverride 2018) Brute forcing passwords can take place via interaction with a service that will check the validity of those credentials or offline against previously acquired credential data, such as password hashes. Brute forcing credentials may take place at various points during a breach."
+    },
+    {
+      "technique_id": "T1110",
+      "section": "description-1",
+      "text": "T1110 Brute Force (credential access). For example, adversaries may attempt to brute force access to [Valid Accounts](https://attack.mitre.org/techniques/T1078) within a victim environment leveraging knowledge gathered from other post-compromise behaviors such as [OS Credential Dumping](https://attack.mitre.org/techniques/T1003), [Account Discovery](https://attack.mitre.org/techniques/T1087), or [Password Policy Discovery](https://attack.mitre.org/techniques/T1201). Adversaries may also combine brute forcing activity with behaviors such as [External Remote Services](https://attack.mitre.org/techniques/T1133) as part of Initial Access."
+    },
+    {
+      "technique_id": "T1110",
+      "section": "description-2",
+      "text": "T1110 Brute Force (credential access). If an adversary guesses the correct password but fails to login to a compromised account due to location-based conditional access policies, they may change their infrastructure until they match the victim\u2019s location and therefore bypass those policies.(Citation: ReliaQuest Health Care Social Engineering Campaign 2024)"
+    },
+    {
+      "technique_id": "T1110",
+      "section": "detection-0",
+      "text": "T1110 Brute Force (credential access). Brute Force Authentication Failures with Multi-Platform Log Correlation"
+    },
+    {
+      "technique_id": "T1110",
+      "section": "mitigations",
+      "text": "T1110 Brute Force (credential access). Mitigations: Account Use Policies; Multi-factor Authentication; Password Policies; User Account Management."
+    },
+    {
+      "technique_id": "T1133",
+      "section": "summary",
+      "text": "T1133 External Remote Services (persistence, initial access). External Remote Services."
+    },
+    {
+      "technique_id": "T1133",
+      "section": "description-0",
+      "text": "T1133 External Remote Services (persistence, initial access). Adversaries may leverage external-facing remote services to initially access and/or persist within a network. Remote services such as VPNs, Citrix, and other access mechanisms allow users to connect to internal enterprise network resources from external locations. There are often remote service gateways that manage connections and credential authentication for these services."
+    },
+    {
+      "technique_id": "T1133",
+      "section": "description-1",
+      "text": "T1133 External Remote Services (persistence, initial access). Services such as [Windows Remote Management](https://attack.mitre.org/techniques/T1021/006) and [VNC](https://attack.mitre.org/techniques/T1021/005) can also be used externally.(Citation: MacOS VNC software for Remote Desktop) Access to [Valid Accounts](https://attack.mitre.org/techniques/T1078) to use the service is often a requirement, which could be obtained through credential pharming or by obtaining the credentials from users after compromising the enterprise network.(Citation: Volexity Virtual Private Keylogging) Access to remote services may be used as a redundant or persistent access mechanism during an operation. Access may also be gained through an exposed service that doesn\u2019t require authentication."
+    },
+    {
+      "technique_id": "T1133",
+      "section": "description-2",
+      "text": "T1133 External Remote Services (persistence, initial access). In containerized environments, this may include an exposed Docker API, Kubernetes API server, kubelet, or web application such as the Kubernetes dashboard.(Citation: Trend Micro Exposed Docker Server)(Citation: Unit 42 Hildegard Malware) Adversaries may also establish persistence on network by configuring a Tor hidden service on a compromised system. Adversaries may utilize the tool `ShadowLink` to facilitate the installation and configuration of the Tor hidden service. Tor hidden service is then accessible via the Tor network because `ShadowLink` sets up a .onion address on the compromised system."
+    },
+    {
+      "technique_id": "T1133",
+      "section": "description-3",
+      "text": "T1133 External Remote Services (persistence, initial access). `ShadowLink` may be used to forward any inbound connections to RDP, allowing the adversaries to have remote access.(Citation: The BadPilot campaign) Adversaries may get `ShadowLink` to persist on a system by masquerading it as an MS Defender application.(Citation: Russian threat actors dig in, prepare to seize on war fatigue)"
+    },
+    {
+      "technique_id": "T1133",
+      "section": "detection-0",
+      "text": "T1133 External Remote Services (persistence, initial access). Behavior-chain detection for T1133 External Remote Services across Windows, Linux, macOS, Containers"
+    },
+    {
+      "technique_id": "T1133",
+      "section": "mitigations",
+      "text": "T1133 External Remote Services (persistence, initial access). Mitigations: Disable or Remove Feature or Program; Limit Access to Resource Over Network; Multi-factor Authentication; Network Segmentation; Restrict Web-Based Content."
+    },
+    {
+      "technique_id": "T1135",
+      "section": "summary",
+      "text": "T1135 Network Share Discovery (discovery). Network Share Discovery."
+    },
+    {
+      "technique_id": "T1135",
+      "section": "description-0",
+      "text": "T1135 Network Share Discovery (discovery). Adversaries may look for folders and drives shared on remote systems as a means of identifying sources of information to gather as a precursor for Collection and to identify potential systems of interest for Lateral Movement. Networks often contain shared network drives and folders that enable users to access file directories on various systems across a network. File sharing over a Windows network occurs over the SMB protocol. (Citation: Wikipedia Shared Resource) (Citation: TechNet Shared Folder) [Net](https://attack.mitre.org/software/S0039) can be used to query a remote system for available shared drives using the <code>net view \\\\\\\\remotesystem</code> command. It can also be used to query shared drives on the local system using <code>net share</code>. For macOS, the <code>sharing -l</code> command lists all shared points used for smb services."
+    },
+    {
+      "technique_id": "T1135",
+      "section": "detection-0",
+      "text": "T1135 Network Share Discovery (discovery). Behavior-chain detection for T1135 Network Share Discovery across Windows, Linux, and macOS"
+    },
+    {
+      "technique_id": "T1135",
+      "section": "mitigations",
+      "text": "T1135 Network Share Discovery (discovery). Mitigations: Operating System Configuration."
+    },
+    {
+      "technique_id": "T1136",
+      "section": "summary",
+      "text": "T1136 Create Account (persistence). Create Account."
+    },
+    {
+      "technique_id": "T1136",
+      "section": "description-0",
+      "text": "T1136 Create Account (persistence). Adversaries may create an account to maintain access to victim systems.(Citation: Symantec WastedLocker June 2020) With a sufficient level of access, creating such accounts may be used to establish secondary credentialed access that do not require persistent remote access tools to be deployed on the system. Accounts may be created on the local system or within a domain or cloud tenant. In cloud environments, adversaries may create accounts that only have access to specific services, which can reduce the chance of detection."
+    },
+    {
+      "technique_id": "T1136",
+      "section": "detection-0",
+      "text": "T1136 Create Account (persistence). Detection Strategy for T1136 - Create Account across platforms"
+    },
+    {
+      "technique_id": "T1136",
+      "section": "mitigations",
+      "text": "T1136 Create Account (persistence). Mitigations: Multi-factor Authentication; Network Segmentation; Operating System Configuration; Privileged Account Management."
+    },
+    {
+      "technique_id": "T1189",
+      "section": "summary",
+      "text": "T1189 Drive-by Compromise (initial access). Drive-by Compromise."
+    },
+    {
+      "technique_id": "T1189",
+      "section": "description-0",
+      "text": "T1189 Drive-by Compromise (initial access). Adversaries may gain access to a system through a user visiting a website over the normal course of browsing."
+    },
+    {
+      "technique_id": "T1189",
+      "section": "description-1",
+      "text": "T1189 Drive-by Compromise (initial access). Multiple ways of delivering exploit code to a browser exist (i.e., [Drive-by Target](https://attack.mitre.org/techniques/T1608/004)), including: * A legitimate website is compromised, allowing adversaries to inject malicious code * Script files served to a legitimate website from a publicly writeable cloud storage bucket are modified by an adversary * Malicious ads are paid for and served through legitimate ad providers (i.e., [Malvertising](https://attack.mitre.org/techniques/T1583/008)) * Built-in web application interfaces that allow user-controllable content are leveraged for the insertion of malicious scripts or iFrames (e.g., cross-site scripting) Browser push notifications may also be abused by adversaries and leveraged for malicious code injection via [User Execution](https://attack.mitre.org/techniques/T1204)."
+    },
+    {
+      "technique_id": "T1189",
+      "section": "description-2",
+      "text": "T1189 Drive-by Compromise (initial access). By clicking \"allow\" on browser push notifications, users may be granting a website permission to run JavaScript code on their browser.(Citation: Push notifications - viruspositive)(Citation: push notification -mcafee)(Citation: push notifications - malwarebytes) Often the website used by an adversary is one visited by a specific community, such as government, a particular industry, or a particular region, where the goal is to compromise a specific user or set of users based on a shared interest. This kind of targeted campaign is often referred to a strategic web compromise or watering hole attack. There are several known examples of this occurring.(Citation: Shadowserver Strategic Web Compromise) Typical drive-by compromise process: 1. A user visits a website that is used to host the adversary controlled content. 2."
+    },
+    {
+      "technique_id": "T1189",
+      "section": "description-3",
+      "text": "T1189 Drive-by Compromise (initial access). Scripts automatically execute, typically searching versions of the browser and plugins for a potentially vulnerable version. The user may be required to assist in this process by enabling scripting, notifications, or active website components and ignoring warning dialog boxes. 3. Upon finding a vulnerable version, exploit code is delivered to the browser. 4. If exploitation is successful, the adversary will gain code execution on the user's system unless other protections are in place. In some cases, a second visit to the website after the initial scan is required before exploit code is delivered. Unlike [Exploit Public-Facing Application](https://attack.mitre.org/techniques/T1190), the focus of this technique is to exploit software on a client endpoint upon visiting a website."
+    },
+    {
+      "technique_id": "T1189",
+      "section": "description-4",
+      "text": "T1189 Drive-by Compromise (initial access). This will commonly give an adversary access to systems on the internal network instead of external systems that may be in a DMZ."
+    },
+    {
+      "technique_id": "T1189",
+      "section": "detection-0",
+      "text": "T1189 Drive-by Compromise (initial access). Drive-by Compromise \u2014 Behavior-based, Multi-platform Detection Strategy (T1189)"
+    },
+    {
+      "technique_id": "T1189",
+      "section": "mitigations",
+      "text": "T1189 Drive-by Compromise (initial access). Mitigations: Application Isolation and Sandboxing; Exploit Protection; Restrict Web-Based Content; Update Software; User Training."
+    },
+    {
+      "technique_id": "T1190",
+      "section": "summary",
+      "text": "T1190 Exploit Public-Facing Application (initial access). Exploit Public-Facing Application."
+    },
+    {
+      "technique_id": "T1190",
+      "section": "description-0",
+      "text": "T1190 Exploit Public-Facing Application (initial access). Adversaries may attempt to exploit a weakness in an Internet-facing host or system to initially access a network. The weakness in the system can be a software bug, a temporary glitch, or a misconfiguration."
+    },
+    {
+      "technique_id": "T1190",
+      "section": "description-1",
+      "text": "T1190 Exploit Public-Facing Application (initial access). Exploited applications are often websites/web servers, but can also include databases (like SQL), standard services (like SMB or SSH), network device administration and management protocols (like SNMP and Smart Install), and any other system with Internet-accessible open sockets.(Citation: NVD CVE-2016-6662)(Citation: CIS Multiple SMB Vulnerabilities)(Citation: US-CERT TA18-106A Network Infrastructure Devices 2018)(Citation: Cisco Blog Legacy Device Attacks)(Citation: NVD CVE-2014-7169) On ESXi infrastructure, adversaries may exploit exposed OpenSLP services; they may alternatively exploit exposed VMware vCenter servers.(Citation: Recorded Future ESXiArgs Ransomware 2023)(Citation: Ars Technica VMWare Code Execution Vulnerability 2021) Depending on the flaw being exploited, this may also involve [Exploitation for Stealth](https://attack.mitre.org/techniques/T1211) or [Exploitation for Cli"
+    },
+    {
+      "technique_id": "T1190",
+      "section": "description-2",
+      "text": "T1190 Exploit Public-Facing Application (initial access). ent Execution](https://attack.mitre.org/techniques/T1203). If an application is hosted on cloud-based infrastructure and/or is containerized, then exploiting it may lead to compromise of the underlying instance or container. This can allow an adversary a path to access the cloud or container APIs (e.g., via the [Cloud Instance Metadata API](https://attack.mitre.org/techniques/T1552/005)), exploit container host access via [Escape to Host](https://attack.mitre.org/techniques/T1611), or take advantage of weak identity and access management policies."
+    },
+    {
+      "technique_id": "T1190",
+      "section": "description-3",
+      "text": "T1190 Exploit Public-Facing Application (initial access). Adversaries may also exploit edge network infrastructure and related appliances, specifically targeting devices that do not support robust host-based defenses.(Citation: Mandiant Fortinet Zero Day)(Citation: Wired Russia Cyberwar) For websites and databases, the OWASP top 10 and CWE top 25 highlight the most common web-based vulnerabilities.(Citation: OWASP Top 10)(Citation: CWE top 25)"
+    },
+    {
+      "technique_id": "T1190",
+      "section": "detection-0",
+      "text": "T1190 Exploit Public-Facing Application (initial access). Exploit Public-Facing Application \u2013 multi-signal correlation (request \u2192 error \u2192 post-exploit process/egress)"
+    },
+    {
+      "technique_id": "T1190",
+      "section": "mitigations",
+      "text": "T1190 Exploit Public-Facing Application (initial access). Mitigations: Application Isolation and Sandboxing; Exploit Protection; Filter Network Traffic; Limit Access to Resource Over Network; Network Segmentation; Privileged Account Management; Update Software; Vulnerability Scanning."
+    },
+    {
+      "technique_id": "T1204",
+      "section": "summary",
+      "text": "T1204 User Execution (execution). User Execution."
+    },
+    {
+      "technique_id": "T1204",
+      "section": "description-0",
+      "text": "T1204 User Execution (execution). An adversary may rely upon specific actions by a user in order to gain execution. Users may be subjected to social engineering to get them to execute malicious code by, for example, opening a malicious document file or link. These user actions will typically be observed as follow-on behavior from forms of [Phishing](https://attack.mitre.org/techniques/T1566). While [User Execution](https://attack.mitre.org/techniques/T1204) frequently occurs shortly after Initial Access it may occur at other phases of an intrusion, such as when an adversary places a file in a shared directory or on a user's desktop hoping that a user will click on it. This activity may also be seen shortly after [Internal Spearphishing](https://attack.mitre.org/techniques/T1534)."
+    },
+    {
+      "technique_id": "T1204",
+      "section": "description-1",
+      "text": "T1204 User Execution (execution). Adversaries may also deceive users into performing actions such as: * Enabling [Remote Access Tools](https://attack.mitre.org/techniques/T1219), allowing direct control of the system to the adversary * Running malicious JavaScript in their browser, allowing adversaries to [Steal Web Session Cookie](https://attack.mitre.org/techniques/T1539)s(Citation: Talos Roblox Scam 2023)(Citation: Krebs Discord Bookmarks 2023) * Downloading and executing malware for [User Execution](https://attack.mitre.org/techniques/T1204) * Coerceing users to copy, paste, and execute malicious code manually(Citation: Reliaquest-execution)(Citation: proofpoint-selfpwn) For example, tech support scams can be facilitated through [Phishing](https://attack.mitre.org/techniques/T1566), vishing, or various forms of user interaction."
+    },
+    {
+      "technique_id": "T1204",
+      "section": "description-2",
+      "text": "T1204 User Execution (execution). Adversaries can use a combination of these methods, such as spoofing and promoting toll-free numbers or call centers that are used to direct victims to malicious websites, to deliver and execute payloads containing malware or [Remote Access Tools](https://attack.mitre.org/techniques/T1219).(Citation: Telephone Attack Delivery)"
+    },
+    {
+      "technique_id": "T1204",
+      "section": "detection-0",
+      "text": "T1204 User Execution (execution). User Execution \u2013 multi-surface behavior chain (documents/links \u2192 helper/unpacker \u2192 LOLBIN/child \u2192 egress)"
+    },
+    {
+      "technique_id": "T1204",
+      "section": "mitigations",
+      "text": "T1204 User Execution (execution). Mitigations: Behavior Prevention on Endpoint; Execution Prevention; Limit Software Installation; Network Intrusion Prevention; Restrict Web-Based Content; User Training."
+    },
+    {
+      "technique_id": "T1211",
+      "section": "summary",
+      "text": "T1211 Exploitation for Stealth (stealth). Exploitation for Stealth."
+    },
+    {
+      "technique_id": "T1211",
+      "section": "description-0",
+      "text": "T1211 Exploitation for Stealth (stealth). Adversaries may exploit vulnerabilities to evade detection by hiding activity, suppressing logging, or operating within trusted or unmonitored components. Adversaries may exploit a system or application vulnerability to avoid detection while maintaining access within an environment. Exploitation occurs when an adversary leverages a programming flaw to execute code in a manner that minimizes visibility or blends in with legitimate activity. Rather than directly disabling defenses, adversaries may use exploitation to circumvent monitoring and logging mechanisms. This can include abusing vulnerabilities in logging pipelines, security tools, or cloud infrastructure to evade audit trails, suppress alerts, or operate without generating telemetry. Adversaries may identify these opportunities through prior reconnaissance or by performing discovery of security controls after initial access."
+    },
+    {
+      "technique_id": "T1211",
+      "section": "description-1",
+      "text": "T1211 Exploitation for Stealth (stealth). In some cases, vulnerabilities in SaaS or public cloud environments may be exploited to evade logging, obscure activity, or deploy infrastructure that remains hidden from standard monitoring tools.(Citation: Bypassing CloudTrail in AWS Service Catalog)(Citation: GhostToken GCP flaw)"
+    },
+    {
+      "technique_id": "T1211",
+      "section": "detection-0",
+      "text": "T1211 Exploitation for Stealth (stealth). Detection Strategy for Exploitation for Stealth"
+    },
+    {
+      "technique_id": "T1211",
+      "section": "mitigations",
+      "text": "T1211 Exploitation for Stealth (stealth). Mitigations: Application Isolation and Sandboxing; Exploit Protection; Threat Intelligence Program; Update Software."
+    },
+    {
+      "technique_id": "T1212",
+      "section": "summary",
+      "text": "T1212 Exploitation for Credential Access (credential access). Exploitation for Credential Access."
+    },
+    {
+      "technique_id": "T1212",
+      "section": "description-0",
+      "text": "T1212 Exploitation for Credential Access (credential access). Adversaries may exploit software vulnerabilities in an attempt to collect credentials. Exploitation of a software vulnerability occurs when an adversary takes advantage of a programming error in a program, service, or within the operating system software or kernel itself to execute adversary-controlled code. Credentialing and authentication mechanisms may be targeted for exploitation by adversaries as a means to gain access to useful credentials or circumvent the process to gain authenticated access to systems. One example of this is `MS14-068`, which targets Kerberos and can be used to forge Kerberos tickets using domain user permissions.(Citation: Technet MS14-068)(Citation: ADSecurity Detecting Forged Tickets) Another example of this is replay attacks, in which the adversary intercepts data packets sent between parties and then later replays these packets."
+    },
+    {
+      "technique_id": "T1212",
+      "section": "description-1",
+      "text": "T1212 Exploitation for Credential Access (credential access). If services don't properly validate authentication requests, these replayed packets may allow an adversary to impersonate one of the parties and gain unauthorized access or privileges.(Citation: Bugcrowd Replay Attack)(Citation: Comparitech Replay Attack)(Citation: Microsoft Midnight Blizzard Replay Attack) Such exploitation has been demonstrated in cloud environments as well. For example, adversaries have exploited vulnerabilities in public cloud infrastructure that allowed for unintended authentication token creation and renewal.(Citation: Storm-0558 techniques for unauthorized email access) Exploitation for credential access may also result in Privilege Escalation depending on the process targeted or credentials obtained."
+    },
+    {
+      "technique_id": "T1212",
+      "section": "detection-0",
+      "text": "T1212 Exploitation for Credential Access (credential access). Detection Strategy for Exploitation for Credential Access"
+    },
+    {
+      "technique_id": "T1212",
+      "section": "mitigations",
+      "text": "T1212 Exploitation for Credential Access (credential access). Mitigations: Application Developer Guidance; Application Isolation and Sandboxing; Exploit Protection; Threat Intelligence Program; Update Software."
+    },
+    {
+      "technique_id": "T1219",
+      "section": "summary",
+      "text": "T1219 Remote Access Tools (command and control). Remote Access Tools."
+    },
+    {
+      "technique_id": "T1219",
+      "section": "description-0",
+      "text": "T1219 Remote Access Tools (command and control). An adversary may use legitimate remote access tools to establish an interactive command and control channel within a network. Remote access tools create a session between two trusted hosts through a graphical interface, a command line interaction, a protocol tunnel via development or management software, or hardware-level access such as KVM (Keyboard, Video, Mouse) over IP solutions. Desktop support software (usually graphical interface) and remote management software (typically command line interface) allow a user to control a computer remotely as if they are a local user inheriting the user or software permissions."
+    },
+    {
+      "technique_id": "T1219",
+      "section": "description-1",
+      "text": "T1219 Remote Access Tools (command and control). This software is commonly used for troubleshooting, software installation, and system management.(Citation: Symantec Living off the Land)(Citation: CrowdStrike 2015 Global Threat Report)(Citation: CrySyS Blog TeamSpy) Adversaries may similarly abuse response features included in EDR and other defensive tools that enable remote access. Remote access tools may be installed and used post-compromise as an alternate communications channel for redundant access or to establish an interactive remote desktop session with the target system. It may also be used as a malware component to establish a reverse connection or back-connect to a service or adversary-controlled system. Installation of many remote access tools may also include persistence (e.g., the software's installation routine creates a [Windows Service](https://attack.mitre.org/techniques/T1543/003))."
+    },
+    {
+      "technique_id": "T1219",
+      "section": "description-2",
+      "text": "T1219 Remote Access Tools (command and control). Remote access modules/features may also exist as part of otherwise existing software (e.g., Google Chrome\u2019s Remote Desktop).(Citation: Google Chrome Remote Desktop)(Citation: Chrome Remote Desktop)"
+    },
+    {
+      "technique_id": "T1219",
+      "section": "detection-0",
+      "text": "T1219 Remote Access Tools (command and control). Behavior-Chain Detection for Remote Access Tools (Tool-Agnostic)"
+    },
+    {
+      "technique_id": "T1219",
+      "section": "mitigations",
+      "text": "T1219 Remote Access Tools (command and control). Mitigations: Disable or Remove Feature or Program; Execution Prevention; Filter Network Traffic; Limit Hardware Installation; Network Intrusion Prevention."
+    },
+    {
+      "technique_id": "T1489",
+      "section": "summary",
+      "text": "T1489 Service Stop (impact). Service Stop."
+    },
+    {
+      "technique_id": "T1489",
+      "section": "description-0",
+      "text": "T1489 Service Stop (impact). Adversaries may stop or disable services on a system to render those services unavailable to legitimate users. Stopping critical services or processes can inhibit or stop response to an incident or aid in the adversary's overall objectives to cause damage to the environment.(Citation: Talos Olympic Destroyer 2018)(Citation: Novetta Blockbuster) Adversaries may accomplish this by disabling individual services of high importance to an organization, such as <code>MSExchangeIS</code>, which will make Exchange content inaccessible.(Citation: Novetta Blockbuster) In some cases, adversaries may stop or disable many or all services to render systems unusable.(Citation: Talos Olympic Destroyer 2018) Services or processes may not allow for modification of their data stores while running."
+    },
+    {
+      "technique_id": "T1489",
+      "section": "description-1",
+      "text": "T1489 Service Stop (impact). Adversaries may stop services or processes in order to conduct [Data Destruction](https://attack.mitre.org/techniques/T1485) or [Data Encrypted for Impact](https://attack.mitre.org/techniques/T1486) on the data stores of services like Exchange and SQL Server, or on virtual machines hosted on ESXi infrastructure.(Citation: SecureWorks WannaCry Analysis)(Citation: Crowdstrike Hypervisor Jackpotting Pt 2 2021) Threat actors may also disable or stop service in cloud environments. For example, by leveraging the `DisableAPIServiceAccess` API in AWS, a threat actor may prevent the service from creating service-linked roles on new accounts in the AWS Organization.(Citation: Datadog Security Labs Cloud Persistence 2025)(Citation: AWS DisableAWSServiceAccess)"
+    },
+    {
+      "technique_id": "T1489",
+      "section": "detection-0",
+      "text": "T1489 Service Stop (impact). Behavioral Detection for Service Stop across Platforms"
+    },
+    {
+      "technique_id": "T1489",
+      "section": "mitigations",
+      "text": "T1489 Service Stop (impact). Mitigations: Network Segmentation; Out-of-Band Communications Channel; Restrict File and Directory Permissions; Restrict Registry Permissions; User Account Management."
+    },
+    {
+      "technique_id": "T1496",
+      "section": "summary",
+      "text": "T1496 Resource Hijacking (impact). Resource Hijacking."
+    },
+    {
+      "technique_id": "T1496",
+      "section": "description-0",
+      "text": "T1496 Resource Hijacking (impact). Adversaries may leverage the resources of co-opted systems to complete resource-intensive tasks, which may impact system and/or hosted service availability. Resource hijacking may take a number of different forms. For example, adversaries may: * Leverage compute resources in order to mine cryptocurrency * Sell network bandwidth to proxy networks * Generate SMS traffic for profit * Abuse cloud-based messaging services to send large quantities of spam messages In some cases, adversaries may leverage multiple types of Resource Hijacking at once.(Citation: Sysdig Cryptojacking Proxyjacking 2023)"
+    },
+    {
+      "technique_id": "T1496",
+      "section": "detection-0",
+      "text": "T1496 Resource Hijacking (impact). Resource Hijacking Detection Strategy"
+    },
+    {
+      "technique_id": "T1498.001",
+      "section": "summary",
+      "text": "T1498.001 Direct Network Flood (impact). Direct Network Flood."
+    },
+    {
+      "technique_id": "T1498.001",
+      "section": "description-0",
+      "text": "T1498.001 Direct Network Flood (impact). Adversaries may attempt to cause a denial of service (DoS) by directly sending a high-volume of network traffic to a target. This DoS attack may also reduce the availability and functionality of the targeted system(s) and network. [Direct Network Flood](https://attack.mitre.org/techniques/T1498/001)s are when one or more systems are used to send a high-volume of network packets towards the targeted service's network. Almost any network protocol may be used for flooding. Stateless protocols such as UDP or ICMP are commonly used but stateful protocols such as TCP can be used as well. Botnets are commonly used to conduct network flooding attacks against networks and services. Large botnets can generate a significant amount of traffic from systems spread across the global Internet."
+    },
+    {
+      "technique_id": "T1498.001",
+      "section": "description-1",
+      "text": "T1498.001 Direct Network Flood (impact). Adversaries may have the resources to build out and control their own botnet infrastructure or may rent time on an existing botnet to conduct an attack. In some of the worst cases for distributed DoS (DDoS), so many systems are used to generate the flood that each one only needs to send out a small amount of traffic to produce enough volume to saturate the target network. In such circumstances, distinguishing DDoS traffic from legitimate clients becomes exceedingly difficult. Botnets have been used in some of the most high-profile DDoS flooding attacks, such as the 2012 series of incidents that targeted major US banks.(Citation: USNYAG IranianBotnet March 2016)"
+    },
+    {
+      "technique_id": "T1498.001",
+      "section": "detection-0",
+      "text": "T1498.001 Direct Network Flood (impact). Direct Network Flood Detection across IaaS, Linux, Windows, and macOS"
+    },
+    {
+      "technique_id": "T1498.001",
+      "section": "mitigations",
+      "text": "T1498.001 Direct Network Flood (impact). Mitigations: Filter Network Traffic."
+    },
+    {
+      "technique_id": "T1498.002",
+      "section": "summary",
+      "text": "T1498.002 Reflection Amplification (impact). Reflection Amplification."
+    },
+    {
+      "technique_id": "T1498.002",
+      "section": "description-0",
+      "text": "T1498.002 Reflection Amplification (impact). Adversaries may attempt to cause a denial of service (DoS) by reflecting a high-volume of network traffic to a target. This type of Network DoS takes advantage of a third-party server intermediary that hosts and will respond to a given spoofed source IP address. This third-party server is commonly termed a reflector. An adversary accomplishes a reflection attack by sending packets to reflectors with the spoofed address of the victim. Similar to Direct Network Floods, more than one system may be used to conduct the attack, or a botnet may be used. Likewise, one or more reflectors may be used to focus traffic on the target.(Citation: Cloudflare ReflectionDoS May 2017) This Network DoS attack may also reduce the availability and functionality of the targeted system(s) and network."
+    },
+    {
+      "technique_id": "T1498.002",
+      "section": "description-1",
+      "text": "T1498.002 Reflection Amplification (impact). Reflection attacks often take advantage of protocols with larger responses than requests in order to amplify their traffic, commonly known as a Reflection Amplification attack. Adversaries may be able to generate an increase in volume of attack traffic that is several orders of magnitude greater than the requests sent to the amplifiers. The extent of this increase will depending upon many variables, such as the protocol in question, the technique used, and the amplifying servers that actually produce the amplification in attack volume."
+    },
+    {
+      "technique_id": "T1498.002",
+      "section": "description-2",
+      "text": "T1498.002 Reflection Amplification (impact). Two prominent protocols that have enabled Reflection Amplification Floods are DNS(Citation: Cloudflare DNSamplficationDoS) and NTP(Citation: Cloudflare NTPamplifciationDoS), though the use of several others in the wild have been documented.(Citation: Arbor AnnualDoSreport Jan 2018) In particular, the memcache protocol showed itself to be a powerful protocol, with amplification sizes up to 51,200 times the requesting packet.(Citation: Cloudflare Memcrashed Feb 2018)"
+    },
+    {
+      "technique_id": "T1498.002",
+      "section": "detection-0",
+      "text": "T1498.002 Reflection Amplification (impact). Detection Strategy for Reflection Amplification DoS (T1498.002)"
+    },
+    {
+      "technique_id": "T1498.002",
+      "section": "mitigations",
+      "text": "T1498.002 Reflection Amplification (impact). Mitigations: Filter Network Traffic."
+    },
+    {
+      "technique_id": "T1498",
+      "section": "summary",
+      "text": "T1498 Network Denial of Service (impact). Network Denial of Service."
+    },
+    {
+      "technique_id": "T1498",
+      "section": "description-0",
+      "text": "T1498 Network Denial of Service (impact). Adversaries may perform Network Denial of Service (DoS) attacks to degrade or block the availability of targeted resources to users. Network DoS can be performed by exhausting the network bandwidth services rely on. Example resources include specific websites, email services, DNS, and web-based applications. Adversaries have been observed conducting network DoS attacks for political purposes(Citation: FireEye OpPoisonedHandover February 2016) and to support other malicious activities, including distraction(Citation: FSISAC FraudNetDoS September 2012), hacktivism, and extortion.(Citation: Symantec DDoS October 2014) A Network DoS will occur when the bandwidth capacity of the network connection to a system is exhausted due to the volume of malicious traffic directed at the resource or the network connections and network devices the resource relies on."
+    },
+    {
+      "technique_id": "T1498",
+      "section": "description-1",
+      "text": "T1498 Network Denial of Service (impact). For example, an adversary may send 10Gbps of traffic to a server that is hosted by a network with a 1Gbps connection to the internet. This traffic can be generated by a single system or multiple systems spread across the internet, which is commonly referred to as a distributed DoS (DDoS). To perform Network DoS attacks several aspects apply to multiple methods, including IP address spoofing, and botnets. Adversaries may use the original IP address of an attacking system, or spoof the source IP address to make the attack traffic more difficult to trace back to the attacking system or to enable reflection. This can increase the difficulty defenders have in defending against the attack by reducing or eliminating the effectiveness of filtering by the source address on network defense devices."
+    },
+    {
+      "technique_id": "T1498",
+      "section": "description-2",
+      "text": "T1498 Network Denial of Service (impact). For DoS attacks targeting the hosting system directly, see [Endpoint Denial of Service](https://attack.mitre.org/techniques/T1499)."
+    },
+    {
+      "technique_id": "T1498",
+      "section": "detection-0",
+      "text": "T1498 Network Denial of Service (impact). Behavioral Detection of T1498 \u2013 Network Denial of Service Across Platforms"
+    },
+    {
+      "technique_id": "T1498",
+      "section": "mitigations",
+      "text": "T1498 Network Denial of Service (impact). Mitigations: Filter Network Traffic."
+    },
+    {
+      "technique_id": "T1499.001",
+      "section": "summary",
+      "text": "T1499.001 OS Exhaustion Flood (impact). OS Exhaustion Flood."
+    },
+    {
+      "technique_id": "T1499.001",
+      "section": "description-0",
+      "text": "T1499.001 OS Exhaustion Flood (impact). Adversaries may launch a denial of service (DoS) attack targeting an endpoint's operating system (OS). A system's OS is responsible for managing the finite resources as well as preventing the entire system from being overwhelmed by excessive demands on its capacity. These attacks do not need to exhaust the actual resources on a system; the attacks may simply exhaust the limits and available resources that an OS self-imposes. Different ways to achieve this exist, including TCP state-exhaustion attacks such as SYN floods and ACK floods.(Citation: Arbor AnnualDoSreport Jan 2018) With SYN floods, excessive amounts of SYN packets are sent, but the 3-way TCP handshake is never completed."
+    },
+    {
+      "technique_id": "T1499.001",
+      "section": "description-1",
+      "text": "T1499.001 OS Exhaustion Flood (impact). Because each OS has a maximum number of concurrent TCP connections that it will allow, this can quickly exhaust the ability of the system to receive new requests for TCP connections, thus preventing access to any TCP service provided by the server.(Citation: Cloudflare SynFlood) ACK floods leverage the stateful nature of the TCP protocol. A flood of ACK packets are sent to the target. This forces the OS to search its state table for a related TCP connection that has already been established. Because the ACK packets are for connections that do not exist, the OS will have to search the entire state table to confirm that no match exists. When it is necessary to do this for a large flood of packets, the computational requirements can cause the server to become sluggish and/or unresponsive, due to the work it must do to eliminate the rogue ACK packets."
+    },
+    {
+      "technique_id": "T1499.001",
+      "section": "description-2",
+      "text": "T1499.001 OS Exhaustion Flood (impact). This greatly reduces the resources available for providing the targeted service.(Citation: Corero SYN-ACKflood)"
+    },
+    {
+      "technique_id": "T1499.001",
+      "section": "detection-0",
+      "text": "T1499.001 OS Exhaustion Flood (impact). Endpoint DoS via OS Exhaustion Flood Detection Strategy"
+    },
+    {
+      "technique_id": "T1499.001",
+      "section": "mitigations",
+      "text": "T1499.001 OS Exhaustion Flood (impact). Mitigations: Filter Network Traffic."
+    },
+    {
+      "technique_id": "T1499.002",
+      "section": "summary",
+      "text": "T1499.002 Service Exhaustion Flood (impact). Service Exhaustion Flood."
+    },
+    {
+      "technique_id": "T1499.002",
+      "section": "description-0",
+      "text": "T1499.002 Service Exhaustion Flood (impact). Adversaries may target the different network services provided by systems to conduct a denial of service (DoS). Adversaries often target the availability of DNS and web services, however others have been targeted as well.(Citation: Arbor AnnualDoSreport Jan 2018) Web server software can be attacked through a variety of means, some of which apply generally while others are specific to the software being used to provide the service. One example of this type of attack is known as a simple HTTP flood, where an adversary sends a large number of HTTP requests to a web server to overwhelm it and/or an application that runs on top of it."
+    },
+    {
+      "technique_id": "T1499.002",
+      "section": "description-1",
+      "text": "T1499.002 Service Exhaustion Flood (impact). This flood relies on raw volume to accomplish the objective, exhausting any of the various resources required by the victim software to provide the service.(Citation: Cloudflare HTTPflood) Another variation, known as a SSL renegotiation attack, takes advantage of a protocol feature in SSL/TLS. The SSL/TLS protocol suite includes mechanisms for the client and server to agree on an encryption algorithm to use for subsequent secure connections. If SSL renegotiation is enabled, a request can be made for renegotiation of the crypto algorithm. In a renegotiation attack, the adversary establishes a SSL/TLS connection and then proceeds to make a series of renegotiation requests. Because the cryptographic renegotiation has a meaningful cost in computation cycles, this can cause an impact to the availability of the service when done in volume.(Citation: Arbor SSLDoS April 2012)"
+    },
+    {
+      "technique_id": "T1499.002",
+      "section": "detection-0",
+      "text": "T1499.002 Service Exhaustion Flood (impact). Detection Strategy for Endpoint DoS via Service Exhaustion Flood"
+    },
+    {
+      "technique_id": "T1499.002",
+      "section": "mitigations",
+      "text": "T1499.002 Service Exhaustion Flood (impact). Mitigations: Filter Network Traffic."
+    },
+    {
+      "technique_id": "T1499.003",
+      "section": "summary",
+      "text": "T1499.003 Application Exhaustion Flood (impact). Application Exhaustion Flood."
+    },
+    {
+      "technique_id": "T1499.003",
+      "section": "description-0",
+      "text": "T1499.003 Application Exhaustion Flood (impact). Adversaries may target resource intensive features of applications to cause a denial of service (DoS), denying availability to those applications. For example, specific features in web applications may be highly resource intensive. Repeated requests to those features may be able to exhaust system resources and deny access to the application or the server itself.(Citation: Arbor AnnualDoSreport Jan 2018)"
+    },
+    {
+      "technique_id": "T1499.003",
+      "section": "detection-0",
+      "text": "T1499.003 Application Exhaustion Flood (impact). Application Exhaustion Flood Detection Across Platforms"
+    },
+    {
+      "technique_id": "T1499.003",
+      "section": "mitigations",
+      "text": "T1499.003 Application Exhaustion Flood (impact). Mitigations: Filter Network Traffic."
+    },
+    {
+      "technique_id": "T1499.004",
+      "section": "summary",
+      "text": "T1499.004 Application or System Exploitation (impact). Application or System Exploitation."
+    },
+    {
+      "technique_id": "T1499.004",
+      "section": "description-0",
+      "text": "T1499.004 Application or System Exploitation (impact). Adversaries may exploit software vulnerabilities that can cause an application or system to crash and deny availability to users. (Citation: Sucuri BIND9 August 2015) Some systems may automatically restart critical applications and services when crashes occur, but they can likely be re-exploited to cause a persistent denial of service (DoS) condition. Adversaries may exploit known or zero-day vulnerabilities to crash applications and/or systems, which may also lead to dependent applications and/or systems to be in a DoS condition. Crashed or restarted applications or systems may also have other effects such as [Data Destruction](https://attack.mitre.org/techniques/T1485), [Firmware Corruption](https://attack.mitre.org/techniques/T1495), [Service Stop](https://attack.mitre.org/techniques/T1489) etc."
+    },
+    {
+      "technique_id": "T1499.004",
+      "section": "description-1",
+      "text": "T1499.004 Application or System Exploitation (impact). which may further cause a DoS condition and deny availability to critical information, applications and/or systems."
+    },
+    {
+      "technique_id": "T1499.004",
+      "section": "detection-0",
+      "text": "T1499.004 Application or System Exploitation (impact). Detection Strategy for Endpoint DoS via Application or System Exploitation"
+    },
+    {
+      "technique_id": "T1499.004",
+      "section": "mitigations",
+      "text": "T1499.004 Application or System Exploitation (impact). Mitigations: Filter Network Traffic."
+    },
+    {
+      "technique_id": "T1499",
+      "section": "summary",
+      "text": "T1499 Endpoint Denial of Service (impact). Endpoint Denial of Service."
+    },
+    {
+      "technique_id": "T1499",
+      "section": "description-0",
+      "text": "T1499 Endpoint Denial of Service (impact). Adversaries may perform Endpoint Denial of Service (DoS) attacks to degrade or block the availability of services to users. Endpoint DoS can be performed by exhausting the system resources those services are hosted on or exploiting the system to cause a persistent crash condition. Example services include websites, email services, DNS, and web-based applications. Adversaries have been observed conducting DoS attacks for political purposes(Citation: FireEye OpPoisonedHandover February 2016) and to support other malicious activities, including distraction(Citation: FSISAC FraudNetDoS September 2012), hacktivism, and extortion.(Citation: Symantec DDoS October 2014) An Endpoint DoS denies the availability of a service without saturating the network used to provide access to the service."
+    },
+    {
+      "technique_id": "T1499",
+      "section": "description-1",
+      "text": "T1499 Endpoint Denial of Service (impact). Adversaries can target various layers of the application stack that is hosted on the system used to provide the service. These layers include the Operating Systems (OS), server applications such as web servers, DNS servers, databases, and the (typically web-based) applications that sit on top of them. Attacking each layer requires different techniques that take advantage of bottlenecks that are unique to the respective components. A DoS attack may be generated by a single system or multiple systems spread across the internet, which is commonly referred to as a distributed DoS (DDoS). To perform DoS attacks against endpoint resources, several aspects apply to multiple methods, including IP address spoofing and botnets."
+    },
+    {
+      "technique_id": "T1499",
+      "section": "description-2",
+      "text": "T1499 Endpoint Denial of Service (impact). Adversaries may use the original IP address of an attacking system, or spoof the source IP address to make the attack traffic more difficult to trace back to the attacking system or to enable reflection. This can increase the difficulty defenders have in defending against the attack by reducing or eliminating the effectiveness of filtering by the source address on network defense devices. Botnets are commonly used to conduct DDoS attacks against networks and services. Large botnets can generate a significant amount of traffic from systems spread across the global internet. Adversaries may have the resources to build out and control their own botnet infrastructure or may rent time on an existing botnet to conduct an attack."
+    },
+    {
+      "technique_id": "T1499",
+      "section": "description-3",
+      "text": "T1499 Endpoint Denial of Service (impact). In some of the worst cases for DDoS, so many systems are used to generate requests that each one only needs to send out a small amount of traffic to produce enough volume to exhaust the target's resources. In such circumstances, distinguishing DDoS traffic from legitimate clients becomes exceedingly difficult. Botnets have been used in some of the most high-profile DDoS attacks, such as the 2012 series of incidents that targeted major US banks.(Citation: USNYAG IranianBotnet March 2016) In cases where traffic manipulation is used, there may be points in the global network (such as high traffic gateway routers) where packets can be altered and cause legitimate clients to execute code that directs network packets toward a target in high volume."
+    },
+    {
+      "technique_id": "T1499",
+      "section": "description-4",
+      "text": "T1499 Endpoint Denial of Service (impact). This type of capability was previously used for the purposes of web censorship where client HTTP traffic was modified to include a reference to JavaScript that generated the DDoS code to overwhelm target web servers.(Citation: ArsTechnica Great Firewall of China) For attacks attempting to saturate the providing network, see [Network Denial of Service](https://attack.mitre.org/techniques/T1498)."
+    },
+    {
+      "technique_id": "T1499",
+      "section": "detection-0",
+      "text": "T1499 Endpoint Denial of Service (impact). Endpoint Resource Saturation and Crash Pattern Detection Across Platforms"
+    },
+    {
+      "technique_id": "T1499",
+      "section": "mitigations",
+      "text": "T1499 Endpoint Denial of Service (impact). Mitigations: Filter Network Traffic."
+    },
+    {
+      "technique_id": "T1505.003",
+      "section": "summary",
+      "text": "T1505.003 Web Shell (persistence). Web Shell."
+    },
+    {
+      "technique_id": "T1505.003",
+      "section": "description-0",
+      "text": "T1505.003 Web Shell (persistence). Adversaries may backdoor web servers with web shells to establish persistent access to systems. A Web shell is a Web script that is placed on an openly accessible Web server to allow an adversary to access the Web server as a gateway into a network. A Web shell may provide a set of functions to execute or a command-line interface on the system that hosts the Web server.(Citation: volexity_0day_sophos_FW) In addition to a server-side script, a Web shell may have a client interface program that is used to talk to the Web server (e.g. [China Chopper](https://attack.mitre.org/software/S0020) Web shell client).(Citation: Lee 2013)"
+    },
+    {
+      "technique_id": "T1505.003",
+      "section": "detection-0",
+      "text": "T1505.003 Web Shell (persistence). Web Shell Detection via Server Behavior and File Execution Chains"
+    },
+    {
+      "technique_id": "T1505.003",
+      "section": "mitigations",
+      "text": "T1505.003 Web Shell (persistence). Mitigations: Disable or Remove Feature or Program; User Account Management."
+    },
+    {
+      "technique_id": "T1550",
+      "section": "summary",
+      "text": "T1550 Use Alternate Authentication Material (lateral movement). Use Alternate Authentication Material."
+    },
+    {
+      "technique_id": "T1550",
+      "section": "description-0",
+      "text": "T1550 Use Alternate Authentication Material (lateral movement). Adversaries may use alternate authentication material, such as password hashes, Kerberos tickets, and application access tokens, in order to move laterally within an environment and bypass normal system access controls. Authentication processes generally require a valid identity (e.g., username) along with one or more authentication factors (e.g., password, pin, physical smart card, token generator, etc.). Alternate authentication material is legitimately generated by systems after a user or application successfully authenticates by providing a valid identity and the required authentication factor(s)."
+    },
+    {
+      "technique_id": "T1550",
+      "section": "description-1",
+      "text": "T1550 Use Alternate Authentication Material (lateral movement). Alternate authentication material may also be generated during the identity creation process.(Citation: NIST Authentication)(Citation: NIST MFA) Caching alternate authentication material allows the system to verify an identity has successfully authenticated without asking the user to reenter authentication factor(s). Because the alternate authentication must be maintained by the system\u2014either in memory or on disk\u2014it may be at risk of being stolen through [Credential Access](https://attack.mitre.org/tactics/TA0006) techniques. By stealing alternate authentication material, adversaries are able to bypass system access controls and authenticate to systems without knowing the plaintext password or any additional authentication factors."
+    },
+    {
+      "technique_id": "T1550",
+      "section": "detection-0",
+      "text": "T1550 Use Alternate Authentication Material (lateral movement). Behavioral Detection Strategy for Use Alternate Authentication Material (T1550)"
+    },
+    {
+      "technique_id": "T1550",
+      "section": "mitigations",
+      "text": "T1550 Use Alternate Authentication Material (lateral movement). Mitigations: Account Use Policies; Active Directory Configuration; Application Developer Guidance; Audit; Password Policies; Privileged Account Management; User Account Management."
+    },
+    {
+      "technique_id": "T1553",
+      "section": "summary",
+      "text": "T1553 Subvert Trust Controls (defense impairment). Subvert Trust Controls."
+    },
+    {
+      "technique_id": "T1553",
+      "section": "description-0",
+      "text": "T1553 Subvert Trust Controls (defense impairment). Adversaries may undermine security controls that will either warn users of untrusted activity or prevent execution of untrusted programs. Operating systems and security products may contain mechanisms to identify programs or websites as possessing some level of trust. Examples of such features would include a program being allowed to run because it is signed by a valid code signing certificate, a program prompting the user with a warning because it has an attribute set from being downloaded from the Internet, or getting an indication that you are about to connect to an untrusted site. Adversaries may attempt to subvert these trust mechanisms. The method adversaries use will depend on the specific mechanism they seek to subvert."
+    },
+    {
+      "technique_id": "T1553",
+      "section": "description-1",
+      "text": "T1553 Subvert Trust Controls (defense impairment). Adversaries may conduct [File and Directory Permissions Modification](https://attack.mitre.org/techniques/T1222) or [Modify Registry](https://attack.mitre.org/techniques/T1112) in support of subverting these controls.(Citation: SpectorOps Subverting Trust Sept 2017) Adversaries may also create or steal code signing certificates to acquire trust on target systems.(Citation: Securelist Digital Certificates)(Citation: Symantec Digital Certificates)"
+    },
+    {
+      "technique_id": "T1553",
+      "section": "detection-0",
+      "text": "T1553 Subvert Trust Controls (defense impairment). Detect Subversion of Trust Controls via Certificate, Registry, and Attribute Manipulation"
+    },
+    {
+      "technique_id": "T1553",
+      "section": "mitigations",
+      "text": "T1553 Subvert Trust Controls (defense impairment). Mitigations: Execution Prevention; Operating System Configuration; Privileged Account Management; Restrict Registry Permissions; Software Configuration."
+    },
+    {
+      "technique_id": "T1566",
+      "section": "summary",
+      "text": "T1566 Phishing (initial access). Phishing."
+    },
+    {
+      "technique_id": "T1566",
+      "section": "description-0",
+      "text": "T1566 Phishing (initial access). Adversaries may send phishing messages to gain access to victim systems. All forms of phishing are electronically delivered social engineering. Phishing can be targeted, known as spearphishing. In spearphishing, a specific individual, company, or industry will be targeted by the adversary. More generally, adversaries can conduct non-targeted phishing, such as in mass malware spam campaigns. Adversaries may send victims emails containing malicious attachments or links, typically to execute malicious code on victim systems. Phishing may also be conducted via third-party services, like social media platforms."
+    },
+    {
+      "technique_id": "T1566",
+      "section": "description-1",
+      "text": "T1566 Phishing (initial access). Phishing may also involve social engineering techniques, such as posing as a trusted source, as well as evasive techniques such as removing or manipulating emails or metadata/headers from compromised accounts being abused to send messages (e.g., [Email Hiding Rules](https://attack.mitre.org/techniques/T1564/008)).(Citation: Microsoft OAuth Spam 2022)(Citation: Palo Alto Unit 42 VBA Infostealer 2014) Another way to accomplish this is by [Email Spoofing](https://attack.mitre.org/techniques/T1684/002)(Citation: Proofpoint-spoof) the identity of the sender, which can be used to fool both the human recipient as well as automated security tools,(Citation: cyberproof-double-bounce) or by including the intended target as a party to an existing email thread that includes malicious files or links (i.e., \"thread hijacking\").(Citation: phishing-krebs) Victims may also receive phishing messages that i"
+    },
+    {
+      "technique_id": "T1566",
+      "section": "description-2",
+      "text": "T1566 Phishing (initial access). nstruct them to call a phone number where they are directed to visit a malicious URL, download malware,(Citation: sygnia Luna Month)(Citation: CISA Remote Monitoring and Management Software) or install adversary-accessible remote management tools onto their computer (i.e., [User Execution](https://attack.mitre.org/techniques/T1204)).(Citation: Unit42 Luna Moth)"
+    },
+    {
+      "technique_id": "T1566",
+      "section": "detection-0",
+      "text": "T1566 Phishing (initial access). Detection Strategy for Phishing across platforms."
+    },
+    {
+      "technique_id": "T1566",
+      "section": "mitigations",
+      "text": "T1566 Phishing (initial access). Mitigations: Antivirus/Antimalware; Audit; Network Intrusion Prevention; Restrict Web-Based Content; Software Configuration; User Training."
+    },
+    {
+      "technique_id": "T1568.002",
+      "section": "summary",
+      "text": "T1568.002 Domain Generation Algorithms (command and control). Domain Generation Algorithms."
+    },
+    {
+      "technique_id": "T1568.002",
+      "section": "description-0",
+      "text": "T1568.002 Domain Generation Algorithms (command and control). Adversaries may make use of Domain Generation Algorithms (DGAs) to dynamically identify a destination domain for command and control traffic rather than relying on a list of static IP addresses or domains. This has the advantage of making it much harder for defenders to block, track, or take over the command and control channel, as there potentially could be thousands of domains that malware can check for instructions.(Citation: Cybereason Dissecting DGAs)(Citation: Cisco Umbrella DGA)(Citation: Unit 42 DGA Feb 2019) DGAs can take the form of apparently random or \u201cgibberish\u201d strings (ex: istgmxdejdnxuyla.ru) when they construct domain names by generating each letter. Alternatively, some DGAs employ whole words as the unit by concatenating words together instead of letters (ex: cityjulydish.net)."
+    },
+    {
+      "technique_id": "T1568.002",
+      "section": "description-1",
+      "text": "T1568.002 Domain Generation Algorithms (command and control). Many DGAs are time-based, generating a different domain for each time period (hourly, daily, monthly, etc). Others incorporate a seed value as well to make predicting future domains more difficult for defenders.(Citation: Cybereason Dissecting DGAs)(Citation: Cisco Umbrella DGA)(Citation: Talos CCleanup 2017)(Citation: Akamai DGA Mitigation) Adversaries may use DGAs for the purpose of [Fallback Channels](https://attack.mitre.org/techniques/T1008). When contact is lost with the primary command and control server malware may employ a DGA as a means to reestablishing command and control.(Citation: Talos CCleanup 2017)(Citation: FireEye POSHSPY April 2017)(Citation: ESET Sednit 2017 Activity)"
+    },
+    {
+      "technique_id": "T1568.002",
+      "section": "detection-0",
+      "text": "T1568.002 Domain Generation Algorithms (command and control). Detection Strategy for Dynamic Resolution using Domain Generation Algorithms."
+    },
+    {
+      "technique_id": "T1568.002",
+      "section": "mitigations",
+      "text": "T1568.002 Domain Generation Algorithms (command and control). Mitigations: Network Intrusion Prevention; Restrict Web-Based Content."
+    },
+    {
+      "technique_id": "T1568",
+      "section": "summary",
+      "text": "T1568 Dynamic Resolution (command and control). Dynamic Resolution."
+    },
+    {
+      "technique_id": "T1568",
+      "section": "description-0",
+      "text": "T1568 Dynamic Resolution (command and control). Adversaries may dynamically establish connections to command and control infrastructure to evade common detections and remediations. This may be achieved by using malware that shares a common algorithm with the infrastructure the adversary uses to receive the malware's communications. These calculations can be used to dynamically adjust parameters such as the domain name, IP address, or port number the malware uses for command and control. Adversaries may use dynamic resolution for the purpose of [Fallback Channels](https://attack.mitre.org/techniques/T1008). When contact is lost with the primary command and control server malware may employ dynamic resolution as a means to reestablishing command and control.(Citation: Talos CCleanup 2017)(Citation: FireEye POSHSPY April 2017)(Citation: ESET Sednit 2017 Activity)"
+    },
+    {
+      "technique_id": "T1568",
+      "section": "detection-0",
+      "text": "T1568 Dynamic Resolution (command and control). Detection Strategy for Dynamic Resolution across OS Platforms"
+    },
+    {
+      "technique_id": "T1568",
+      "section": "mitigations",
+      "text": "T1568 Dynamic Resolution (command and control). Mitigations: Network Intrusion Prevention; Restrict Web-Based Content."
+    },
+    {
+      "technique_id": "T1573.001",
+      "section": "summary",
+      "text": "T1573.001 Symmetric Cryptography (command and control). Symmetric Cryptography."
+    },
+    {
+      "technique_id": "T1573.001",
+      "section": "description-0",
+      "text": "T1573.001 Symmetric Cryptography (command and control). Adversaries may employ a known symmetric encryption algorithm to conceal command and control traffic rather than relying on any inherent protections provided by a communication protocol. Symmetric encryption algorithms use the same key for plaintext encryption and ciphertext decryption. Common symmetric encryption algorithms include AES, DES, 3DES, Blowfish, and RC4."
+    },
+    {
+      "technique_id": "T1573.001",
+      "section": "detection-0",
+      "text": "T1573.001 Symmetric Cryptography (command and control). Detection Strategy for Encrypted Channel via Symmetric Cryptography across OS Platforms"
+    },
+    {
+      "technique_id": "T1573.001",
+      "section": "mitigations",
+      "text": "T1573.001 Symmetric Cryptography (command and control). Mitigations: Network Intrusion Prevention."
+    },
+    {
+      "technique_id": "T1573.002",
+      "section": "summary",
+      "text": "T1573.002 Asymmetric Cryptography (command and control). Asymmetric Cryptography."
+    },
+    {
+      "technique_id": "T1573.002",
+      "section": "description-0",
+      "text": "T1573.002 Asymmetric Cryptography (command and control). Adversaries may employ a known asymmetric encryption algorithm to conceal command and control traffic rather than relying on any inherent protections provided by a communication protocol. Asymmetric cryptography, also known as public key cryptography, uses a keypair per party: one public that can be freely distributed, and one private. Due to how the keys are generated, the sender encrypts data with the receiver\u2019s public key and the receiver decrypts the data with their private key. This ensures that only the intended recipient can read the encrypted data. Common public key encryption algorithms include RSA and ElGamal. For efficiency, many protocols (including SSL/TLS) use symmetric cryptography once a connection is established, but use asymmetric cryptography to establish or transmit a key."
+    },
+    {
+      "technique_id": "T1573.002",
+      "section": "description-1",
+      "text": "T1573.002 Asymmetric Cryptography (command and control). As such, these protocols are classified as [Asymmetric Cryptography](https://attack.mitre.org/techniques/T1573/002)."
+    },
+    {
+      "technique_id": "T1573.002",
+      "section": "detection-0",
+      "text": "T1573.002 Asymmetric Cryptography (command and control). Detection Strategy for Encrypted Channel via Asymmetric Cryptography across OS Platforms"
+    },
+    {
+      "technique_id": "T1573.002",
+      "section": "mitigations",
+      "text": "T1573.002 Asymmetric Cryptography (command and control). Mitigations: Network Intrusion Prevention; SSL/TLS Inspection."
+    },
+    {
+      "technique_id": "T1573",
+      "section": "summary",
+      "text": "T1573 Encrypted Channel (command and control). Encrypted Channel."
+    },
+    {
+      "technique_id": "T1573",
+      "section": "description-0",
+      "text": "T1573 Encrypted Channel (command and control). Adversaries may employ an encryption algorithm to conceal command and control traffic rather than relying on any inherent protections provided by a communication protocol. Despite the use of a secure algorithm, these implementations may be vulnerable to reverse engineering if secret keys are encoded and/or generated within malware samples/configuration files."
+    },
+    {
+      "technique_id": "T1573",
+      "section": "detection-0",
+      "text": "T1573 Encrypted Channel (command and control). Detection Strategy for Encrypted Channel across OS Platforms"
+    },
+    {
+      "technique_id": "T1573",
+      "section": "mitigations",
+      "text": "T1573 Encrypted Channel (command and control). Mitigations: Network Intrusion Prevention; SSL/TLS Inspection."
+    },
+    {
+      "technique_id": "T1583.005",
+      "section": "summary",
+      "text": "T1583.005 Botnet (resource development). Botnet."
+    },
+    {
+      "technique_id": "T1583.005",
+      "section": "description-0",
+      "text": "T1583.005 Botnet (resource development). Adversaries may buy, lease, or rent a network of compromised systems that can be used during targeting. A botnet is a network of compromised systems that can be instructed to perform coordinated tasks.(Citation: Norton Botnet) Adversaries may purchase a subscription to use an existing botnet from a booter/stresser service. Internet-facing edge devices and related network appliances that are end-of-life (EOL) and unsupported by their manufacturers are commonly acquired for botnet activities."
+    },
+    {
+      "technique_id": "T1583.005",
+      "section": "description-1",
+      "text": "T1583.005 Botnet (resource development). Adversaries may lease operational relay box (ORB) networks \u2013 consisting of virtual private servers (VPS), small office/home office (SOHO) routers, or Internet of Things (IoT) devices \u2013 to serve as a botnet.(Citation: ORB Mandiant) With a botnet at their disposal, adversaries may perform follow-on activity such as large-scale [Phishing](https://attack.mitre.org/techniques/T1566) or Distributed Denial of Service (DDoS).(Citation: Imperva DDoS for Hire)(Citation: Krebs-Anna)(Citation: Krebs-Bazaar)(Citation: Krebs-Booter) Acquired botnets may also be used to support Command and Control activity, such as [Hide Infrastructure](https://attack.mitre.org/techniques/T1665) through an established [Proxy](https://attack.mitre.org/techniques/T1090) network."
+    },
+    {
+      "technique_id": "T1583.005",
+      "section": "detection-0",
+      "text": "T1583.005 Botnet (resource development). Detection of Botnet"
+    },
+    {
+      "technique_id": "T1583.005",
+      "section": "mitigations",
+      "text": "T1583.005 Botnet (resource development). Mitigations: Pre-compromise."
+    },
+    {
+      "technique_id": "T1584.005",
+      "section": "summary",
+      "text": "T1584.005 Botnet (resource development). Botnet."
+    },
+    {
+      "technique_id": "T1584.005",
+      "section": "description-0",
+      "text": "T1584.005 Botnet (resource development). Adversaries may compromise numerous third-party systems to form a botnet that can be used during targeting. A botnet is a network of compromised systems that can be instructed to perform coordinated tasks.(Citation: Norton Botnet) Instead of purchasing/renting a botnet from a booter/stresser service, adversaries may build their own botnet by compromising numerous third-party systems.(Citation: Imperva DDoS for Hire) Adversaries may also conduct a takeover of an existing botnet, such as redirecting bots to adversary-controlled C2 servers.(Citation: Dell Dridex Oct 2015) With a botnet at their disposal, adversaries may perform follow-on activity such as large-scale [Phishing](https://attack.mitre.org/techniques/T1566) or Distributed Denial of Service (DDoS)."
+    },
+    {
+      "technique_id": "T1584.005",
+      "section": "detection-0",
+      "text": "T1584.005 Botnet (resource development). Detection of Botnet"
+    },
+    {
+      "technique_id": "T1584.005",
+      "section": "mitigations",
+      "text": "T1584.005 Botnet (resource development). Mitigations: Pre-compromise."
+    },
+    {
+      "technique_id": "T1590.005",
+      "section": "summary",
+      "text": "T1590.005 IP Addresses (reconnaissance). IP Addresses."
+    },
+    {
+      "technique_id": "T1590.005",
+      "section": "description-0",
+      "text": "T1590.005 IP Addresses (reconnaissance). Adversaries may gather the victim's IP addresses that can be used during targeting. Public IP addresses may be allocated to organizations by block, or a range of sequential addresses. Information about assigned IP addresses may include a variety of details, such as which IP addresses are in use. IP addresses may also enable an adversary to derive other details about a victim, such as organizational size, physical location(s), Internet service provider, and or where/how their publicly-facing infrastructure is hosted. Adversaries may gather this information in various ways, such as direct collection actions via [Active Scanning](https://attack.mitre.org/techniques/T1595) or [Phishing for Information](https://attack.mitre.org/techniques/T1598)."
+    },
+    {
+      "technique_id": "T1590.005",
+      "section": "description-1",
+      "text": "T1590.005 IP Addresses (reconnaissance). Information about assigned IP addresses may also be exposed to adversaries via online or other accessible data sets (ex: [Search Open Technical Databases](https://attack.mitre.org/techniques/T1596)).(Citation: WHOIS)(Citation: DNS Dumpster)(Citation: Circl Passive DNS) Gathering this information may reveal opportunities for other forms of reconnaissance (ex: [Active Scanning](https://attack.mitre.org/techniques/T1595) or [Search Open Websites/Domains](https://attack.mitre.org/techniques/T1593)), establishing operational resources (ex: [Acquire Infrastructure](https://attack.mitre.org/techniques/T1583) or [Compromise Infrastructure](https://attack.mitre.org/techniques/T1584)), and/or initial access (ex: [External Remote Services](https://attack.mitre.org/techniques/T1133))."
+    },
+    {
+      "technique_id": "T1590.005",
+      "section": "detection-0",
+      "text": "T1590.005 IP Addresses (reconnaissance). Detection of IP Addresses"
+    },
+    {
+      "technique_id": "T1590.005",
+      "section": "mitigations",
+      "text": "T1590.005 IP Addresses (reconnaissance). Mitigations: Pre-compromise."
+    },
+    {
+      "technique_id": "T1590",
+      "section": "summary",
+      "text": "T1590 Gather Victim Network Information (reconnaissance). Gather Victim Network Information."
+    },
+    {
+      "technique_id": "T1590",
+      "section": "description-0",
+      "text": "T1590 Gather Victim Network Information (reconnaissance). Adversaries may gather information about the victim's networks that can be used during targeting. Information about networks may include a variety of details, including administrative data (ex: IP ranges, domain names, etc.) as well as specifics regarding its topology and operations. Adversaries may gather this information in various ways, such as direct collection actions via [Active Scanning](https://attack.mitre.org/techniques/T1595) or [Phishing for Information](https://attack.mitre.org/techniques/T1598)."
+    },
+    {
+      "technique_id": "T1590",
+      "section": "description-1",
+      "text": "T1590 Gather Victim Network Information (reconnaissance). Information about networks may also be exposed to adversaries via online or other accessible data sets (ex: [Search Open Technical Databases](https://attack.mitre.org/techniques/T1596)).(Citation: WHOIS)(Citation: DNS Dumpster)(Citation: Circl Passive DNS) Gathering this information may reveal opportunities for other forms of reconnaissance (ex: [Active Scanning](https://attack.mitre.org/techniques/T1595) or [Search Open Websites/Domains](https://attack.mitre.org/techniques/T1593)), establishing operational resources (ex: [Acquire Infrastructure](https://attack.mitre.org/techniques/T1583) or [Compromise Infrastructure](https://attack.mitre.org/techniques/T1584)), and/or initial access (ex: [Trusted Relationship](https://attack.mitre.org/techniques/T1199))."
+    },
+    {
+      "technique_id": "T1590",
+      "section": "detection-0",
+      "text": "T1590 Gather Victim Network Information (reconnaissance). Detection of Gather Victim Network Information"
+    },
+    {
+      "technique_id": "T1590",
+      "section": "mitigations",
+      "text": "T1590 Gather Victim Network Information (reconnaissance). Mitigations: Pre-compromise."
+    },
+    {
+      "technique_id": "T1595.001",
+      "section": "summary",
+      "text": "T1595.001 Scanning IP Blocks (reconnaissance). Scanning IP Blocks."
+    },
+    {
+      "technique_id": "T1595.001",
+      "section": "description-0",
+      "text": "T1595.001 Scanning IP Blocks (reconnaissance). Adversaries may scan victim IP blocks to gather information that can be used during targeting. Public IP addresses may be allocated to organizations by block, or a range of sequential addresses. Adversaries may scan IP blocks in order to [Gather Victim Network Information](https://attack.mitre.org/techniques/T1590), such as which IP addresses are actively in use as well as more detailed information about hosts assigned these addresses."
+    },
+    {
+      "technique_id": "T1595.001",
+      "section": "description-1",
+      "text": "T1595.001 Scanning IP Blocks (reconnaissance). Scans may range from simple pings (ICMP requests and responses) to more nuanced scans that may reveal host software/versions via server banners or other network artifacts.(Citation: Botnet Scan) Information from these scans may reveal opportunities for other forms of reconnaissance (ex: [Search Open Websites/Domains](https://attack.mitre.org/techniques/T1593) or [Search Open Technical Databases](https://attack.mitre.org/techniques/T1596)), establishing operational resources (ex: [Develop Capabilities](https://attack.mitre.org/techniques/T1587) or [Obtain Capabilities](https://attack.mitre.org/techniques/T1588)), and/or initial access (ex: [External Remote Services](https://attack.mitre.org/techniques/T1133))."
+    },
+    {
+      "technique_id": "T1595.001",
+      "section": "detection-0",
+      "text": "T1595.001 Scanning IP Blocks (reconnaissance). Detection of Scanning IP Blocks"
+    },
+    {
+      "technique_id": "T1595.001",
+      "section": "mitigations",
+      "text": "T1595.001 Scanning IP Blocks (reconnaissance). Mitigations: Pre-compromise."
+    },
+    {
+      "technique_id": "T1595.002",
+      "section": "summary",
+      "text": "T1595.002 Vulnerability Scanning (reconnaissance). Vulnerability Scanning."
+    },
+    {
+      "technique_id": "T1595.002",
+      "section": "description-0",
+      "text": "T1595.002 Vulnerability Scanning (reconnaissance). Adversaries may scan victims for vulnerabilities that can be used during targeting. Vulnerability scans typically check if the configuration of a target host/application (ex: software and version) potentially aligns with the target of a specific exploit the adversary may seek to use. These scans may also include more broad attempts to [Gather Victim Host Information](https://attack.mitre.org/techniques/T1592) that can be used to identify more commonly known, exploitable vulnerabilities."
+    },
+    {
+      "technique_id": "T1595.002",
+      "section": "description-1",
+      "text": "T1595.002 Vulnerability Scanning (reconnaissance). Vulnerability scans typically harvest running software and version numbers via server banners, listening ports, or other network artifacts.(Citation: OWASP Vuln Scanning) Information from these scans may reveal opportunities for other forms of reconnaissance (ex: [Search Open Websites/Domains](https://attack.mitre.org/techniques/T1593) or [Search Open Technical Databases](https://attack.mitre.org/techniques/T1596)), establishing operational resources (ex: [Develop Capabilities](https://attack.mitre.org/techniques/T1587) or [Obtain Capabilities](https://attack.mitre.org/techniques/T1588)), and/or initial access (ex: [Exploit Public-Facing Application](https://attack.mitre.org/techniques/T1190))."
+    },
+    {
+      "technique_id": "T1595.002",
+      "section": "detection-0",
+      "text": "T1595.002 Vulnerability Scanning (reconnaissance). Detection of Vulnerability Scanning"
+    },
+    {
+      "technique_id": "T1595.002",
+      "section": "mitigations",
+      "text": "T1595.002 Vulnerability Scanning (reconnaissance). Mitigations: Pre-compromise."
+    },
+    {
+      "technique_id": "T1595",
+      "section": "summary",
+      "text": "T1595 Active Scanning (reconnaissance). Active Scanning."
+    },
+    {
+      "technique_id": "T1595",
+      "section": "description-0",
+      "text": "T1595 Active Scanning (reconnaissance). Adversaries may execute active reconnaissance scans to gather information that can be used during targeting. Active scans are those where the adversary probes victim infrastructure via network traffic, as opposed to other forms of reconnaissance that do not involve direct interaction. Adversaries may perform different forms of active scanning depending on what information they seek to gather."
+    },
+    {
+      "technique_id": "T1595",
+      "section": "description-1",
+      "text": "T1595 Active Scanning (reconnaissance). These scans can also be performed in various ways, including using native features of network protocols such as ICMP.(Citation: Botnet Scan)(Citation: OWASP Fingerprinting) Information from these scans may reveal opportunities for other forms of reconnaissance (ex: [Search Open Websites/Domains](https://attack.mitre.org/techniques/T1593) or [Search Open Technical Databases](https://attack.mitre.org/techniques/T1596)), establishing operational resources (ex: [Develop Capabilities](https://attack.mitre.org/techniques/T1587) or [Obtain Capabilities](https://attack.mitre.org/techniques/T1588)), and/or initial access (ex: [External Remote Services](https://attack.mitre.org/techniques/T1133) or [Exploit Public-Facing Application](https://attack.mitre.org/techniques/T1190))."
+    },
+    {
+      "technique_id": "T1595",
+      "section": "detection-0",
+      "text": "T1595 Active Scanning (reconnaissance). Detection of Active Scanning"
+    },
+    {
+      "technique_id": "T1595",
+      "section": "mitigations",
+      "text": "T1595 Active Scanning (reconnaissance). Mitigations: Pre-compromise."
+    }
+  ]
+}

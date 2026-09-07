@@ -1,0 +1,8 @@
+{
+  "attack_version": "19.2",
+  "attack_spec": "3.3.0",
+  "source": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack.json",
+  "technique_count": 61,
+  "corpus_sha256": "d3b69d1585f8179bc3f75a83505edcc2faa142c3e6366bb78a5f22878cede1a3",
+  "built_at": "2026-09-04T16:24:14.810861+00:00"
+}

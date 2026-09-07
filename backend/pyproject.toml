@@ -1,0 +1,157 @@
+[project]
+name = "flare-backend"
+version = "2.0.0"
+description = "Flare — AI-powered SOC alert triage pipeline"
+requires-python = ">=3.11"
+
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    # PLAN §4.1 — the pipeline IS a LangGraph StateGraph with real
+    # `add_conditional_edges`, so this is not optional in any sense: without it
+    # `app.agent.graph` does not import and the app does not start.
+    #
+    # **FOUND BY THE COLD-CLONE JOB, on its first real run.** It had been
+    # installed by hand into the development virtualenv since Phase 3 and named
+    # in no dependency list, so `pip install -e .` on a fresh machine produced
+    # a package that could not import its own pipeline. Five phases of green
+    # local runs never saw it.
+    "langgraph>=0.2",
+    # Imported DIRECTLY by app/api/errors.py (StarletteHTTPException) and by
+    # the WebSocket layer. FastAPI happens to pull it in, but a direct import
+    # satisfied only transitively breaks the day FastAPI changes its pin —
+    # silently, at import time, on somebody else's machine.
+    "starlette>=0.40",
+    "pydantic[email]>=2.9",
+    "pydantic-settings>=2.6",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "aiosqlite>=0.20",
+    "alembic>=1.14",
+    "pyjwt>=2.10",
+    "bcrypt>=4.2",
+    "python-multipart>=0.0.17",
+    # PLAN §9 — `regex` rather than the standard library `re` because it is the
+    # only one of the two that can enforce a MATCH TIMEOUT. A catastrophic
+    # backtrack in `re` cannot be interrupted, so on a user-supplied `contains`
+    # pattern the whole API stops answering until it finishes.
+    "regex>=2024.11.6",
+    # PLAN §4.1 — the scheduler, and the PDF export.
+    "apscheduler>=3.10,<4",
+    "reportlab>=4.2",
+    # PLAN §8.4 — async SMTP with a real timeout. The stdlib `smtplib` is
+    # blocking and its default timeout is "forever", which is what hung a
+    # worker on a black-holed relay in the prior build.
+    "aiosmtplib>=3.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[project.optional-dependencies]
+# PLAN §21 item 7 — the ML stack, declared rather than assumed.
+#
+# **THIS WAS A COLD-CLONE GAP, and the smoke test is what makes it stay closed.**
+# `lightgbm`, `onnxruntime` and the rest were installed into the development
+# virtualenv and named nowhere, so `pip install -e .` on a fresh machine
+# produced an app that imported fine and failed at the first inference. The
+# cold-clone job installs `.[dev,ml]` into a runner that has never seen this
+# project, loads both artifacts, and fails if either cannot start.
+#
+# NO PYTORCH AND NO sentence-transformers: the ONNX path (D4) exists precisely
+# to avoid an ~800 MB dependency for a 23 MB model. Everything here is free and
+# open-source; there is no paid service anywhere in this stack.
+ml = [
+    # The fast tier (D6). 4.x is what the committed booster was trained with;
+    # the booster text format is stable across 4.x.
+    "lightgbm>=4.5,<5",
+    # Split, metrics, isotonic calibration, and the 1-NN baseline (§7.3).
+    "scikit-learn>=1.5",
+    "scipy>=1.13",
+    # The embedding runtime (D4). CPU only — no CUDA wheel is pulled.
+    "onnxruntime>=1.19",
+    "tokenizers>=0.20",
+    "numpy>=1.26",
+    # The feature builders are pandas-based, and the read-only-view behaviour
+    # the train/serve skew check exists for is a pandas 3 behaviour.
+    "pandas>=2.2",
+]
+
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "httpx>=0.28",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "pandas-stubs>=2.2",
+    "types-regex>=2024.11",
+    "types-reportlab>=4.2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+# PLAN §12 — the layers are addressable so a CI job can run one of them, and
+# `--strict-markers` means a typo in a marker name is a collection error rather
+# than a silently-unselected test.
+addopts = "--strict-markers"
+markers = [
+    "failure: PLAN §12 failure injection — provider down, 429, timeout, malformed output, I18 empty content, intel partial/total failure, DB locked, queue full, dead key.",
+    "load: PLAN §12 load — bounded queues drop and count rather than growing, a 503 is returned rather than a hang, the single stream loop holds under multiple clients. Slow by design; run explicitly.",
+    "invariant: PLAN §5 — one named test per invariant, so the mapping from I1..I19 to a test is auditable.",
+    "contract: CONTRACT §1.3 / §2 — the response shapes the frozen frontend consumes, asserted field by field.",
+]
+# PLAN §12: a warning fails the run.
+filterwarnings = [
+    "error",
+    # bcrypt 4.x emits this from its own version probe; not ours to fix.
+    "ignore:.*'crypt' is deprecated.*:DeprecationWarning",
+    # pytest-asyncio deprecating its own event_loop_policy fixture internally.
+    "ignore::pytest.PytestDeprecationWarning",
+    # starlette.testclient (needed for WebSocket tests) touches a deprecated
+    # anyio alias at import time. Third-party, not ours to fix.
+    "ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ASYNC", "S", "RUF"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S105", "S106", "S107"]
+# S105 fires on `token_type == "access"` — a discriminator, not a credential.
+"app/security/tokens.py" = ["S105"]
+# The label-encoding variants are deliberate literals: the whole point is to
+# match the exact damaged characters CICIDS2017 ships.
+"app/ingestion/labels.py" = ["RUF001", "RUF002"]
+"tests/unit/test_partitions.py" = ["RUF001"]
+# The demo password is deliberately public; it ships in the frontend bundle.
+"scripts/seed_demo.py" = ["S105"]
+
+[tool.mypy]
+# Matches the interpreter this runs on. numpy's bundled stubs use `type`
+# statements, which are 3.12+ syntax and fail to parse under an older target.
+python_version = "3.13"
+warn_unused_ignores = true
+warn_redundant_casts = true
+disallow_untyped_defs = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+# Ship no stubs and no py.typed marker. Their absence is a fact about the
+# libraries, not a defect in this code, and silencing it here keeps a real
+# error from being lost in the noise.
+[[tool.mypy.overrides]]
+module = ["onnxruntime.*", "sklearn.*", "lightgbm.*", "tokenizers.*", "apscheduler.*"]
+ignore_missing_imports = true

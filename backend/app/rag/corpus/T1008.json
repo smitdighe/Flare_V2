@@ -1,0 +1,22 @@
+{
+  "technique_id": "T1008",
+  "name": "Fallback Channels",
+  "description": "Adversaries may use fallback or alternate communication channels if the primary channel is compromised or inaccessible in order to maintain reliable command and control and to avoid data transfer thresholds.",
+  "tactics": [
+    "command and control"
+  ],
+  "platforms": [
+    "ESXi",
+    "Linux",
+    "macOS",
+    "Windows"
+  ],
+  "mitigations": [
+    "Network Intrusion Prevention"
+  ],
+  "detection": "Behavioral Detection of Fallback or Alternate C2 Channels",
+  "is_subtechnique": false,
+  "parent_id": null,
+  "url": "https://attack.mitre.org/techniques/T1008",
+  "attack_version": "19.2"
+}

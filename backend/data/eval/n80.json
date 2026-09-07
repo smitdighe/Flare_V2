@@ -1,0 +1,320 @@
+{
+  "attack_type_accuracy": 1.0,
+  "attack_type_breakdown": {
+    "benign": {
+      "accuracy": 1.0,
+      "correct": 14,
+      "true_count": 14
+    },
+    "botnet": {
+      "accuracy": 1.0,
+      "correct": 13,
+      "true_count": 13
+    },
+    "ddos": {
+      "accuracy": 1.0,
+      "correct": 13,
+      "true_count": 13
+    },
+    "dos": {
+      "accuracy": 1.0,
+      "correct": 14,
+      "true_count": 14
+    },
+    "port_scan": {
+      "accuracy": 1.0,
+      "correct": 13,
+      "true_count": 13
+    },
+    "web_attack": {
+      "accuracy": 1.0,
+      "correct": 13,
+      "true_count": 13
+    }
+  },
+  "avg_latency_ms": 632.176,
+  "baselines": {
+    "majority_class": 0.175,
+    "nearest_neighbour_1nn": 1.0,
+    "random": 0.166667
+  },
+  "cached": false,
+  "cached_at": "2026-09-05T17:50:23.215839+00:00",
+  "confusion_matrix": {
+    "labels": [
+      "critical",
+      "high",
+      "medium",
+      "low"
+    ],
+    "matrix": [
+      [
+        13,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        40,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        13,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        14
+      ]
+    ]
+  },
+  "duration_ms": 371421.97,
+  "escalation": {
+    "accuracy_escalated": null,
+    "accuracy_kept": 1.0,
+    "escalated_count": 0,
+    "kept_count": 80,
+    "note": "PLAN \u00a77.3 Band 3 predicted this. The classification gate fires on roughly three alerts per thousand because isotonic calibration on a well-separated problem pushes 99.7% of confident predictions to exactly 1.0, so on a sample this size it is expected to fire rarely or not at all. That is the gate being confident, not the gate being broken \u2014 and the reasoning tier is a SEPARATE gate that is not rare.",
+    "rate": 0.0,
+    "threshold": 0.99
+  },
+  "generated_at": "2026-09-05T17:50:23.174040+00:00",
+  "guards": [
+    {
+      "detail": "attack-type accuracy 1.0000 exceeds the 0.995 absolute backstop (PLAN \u00a77.3). Reported as inconclusive: accuracy over 80 rows moves in steps of 0.0125, which cannot express a 0.995 threshold. The same check on the full 1,800-row partition is decisive and is reported separately.",
+      "guard": "lightgbm_absolute:sample",
+      "status": "inconclusive"
+    },
+    {
+      "detail": "sample accuracy is exactly 1.000 over 80 sampled rows. A model at its measured held-out accuracy of 0.9944 returns a perfect sample of this size with probability 0.640, so this result is an ordinary sampling outcome and the check cannot distinguish it from a pinned one. The same check on the full 1,800-row partition IS decisive and is reported separately.",
+      "guard": "degenerate:sample",
+      "status": "inconclusive"
+    },
+    {
+      "detail": "LLM-alone attack-type accuracy 0.2000 is below the 0.35 floor. Likely an under-fed prompt, a broken parser, a class-mapping bug, or silent provider failures being counted as `unknown` (PLAN \u00a77.3).",
+      "guard": "llm_floor",
+      "status": "tripped"
+    }
+  ],
+  "guards_tripped": [
+    "llm_floor"
+  ],
+  "high_severity_f1": 1.0,
+  "high_severity_precision": 1.0,
+  "high_severity_recall": 1.0,
+  "misclassified_count": 0,
+  "model_version": "1.0.0",
+  "offline": false,
+  "partition": {
+    "disjointness": "verified on the 77-feature vector, not the row id (PLAN \u00a77.3b / I15 as amended)",
+    "eval_rows_available": 1800,
+    "exact_feature_overlap_with_train": 0,
+    "sampled": 80,
+    "seed": 20260904
+  },
+  "rows": [],
+  "run_notice": "Seed 20260904. Sampling and shuffling are deterministic; the LLM tier is not \u2014 provider temperature and server-side variance mean two runs on the same rows can disagree, so a difference of a point or two between runs is the provider, not the harness. Ground truth is data/splits/eval.csv, held out from both training and replay, verified disjoint at the feature vector. The six headline tiles are the AS-SHIPPED SYSTEM numbers: real routing, real escalation, the same run_pipeline the replay loop calls. The system and LightGBM-alone attack-type numbers are identical (1.0000) and the classification gate fired 0 time(s) on 80 rows. PLAN \u00a77.3 Band 3 predicted exactly this: the gate fires on roughly three alerts per thousand, and three in a thousand cannot move a headline. It is recorded as equality, not as a win. INCONCLUSIVE: attack-type accuracy 1.0000 exceeds the 0.995 absolute backstop (PLAN \u00a77.3). Reported as inconclusive: accuracy over 80 rows moves in steps of 0.0125, which cannot express a 0.995 threshold. The same check on the full 1,800-row partition is decisive and is reported separately. INCONCLUSIVE: sample accuracy is exactly 1.000 over 80 sampled rows. A model at its measured held-out accuracy of 0.9944 returns a perfect sample of this size with probability 0.640, so this result is an ordinary sampling outcome and the check cannot distinguish it from a pinned one. The same check on the full 1,800-row partition IS decisive and is reported separately. GUARD BAND TRIPPED \u2014 these numbers are not to be quoted until the finding is adjudicated: LLM-alone attack-type accuracy 0.2000 is below the 0.35 floor. Likely an under-fed prompt, a broken parser, a class-mapping bug, or silent provider failures being counted as `unknown` (PLAN \u00a77.3).",
+  "sample_size": 80,
+  "severity_accuracy": 1.0,
+  "tiers": {
+    "lightgbm": {
+      "attack_type": {
+        "accuracy": 1.0,
+        "baselines": {
+          "majority_class": 0.175,
+          "nearest_neighbour_1nn": 1.0,
+          "random": 0.166667
+        }
+      },
+      "attack_type_accuracy": 1.0,
+      "avg_latency_ms": 8.496,
+      "binary_detection": {
+        "accuracy": 1.0,
+        "baselines": {
+          "majority_class": 0.825,
+          "random": 0.5
+        },
+        "f1": 1.0,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "binary_detection_accuracy": 1.0,
+      "failures": {},
+      "high_severity": {
+        "f1": 1.0,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "sample_size": 80,
+      "severity": {
+        "accuracy": 1.0,
+        "baselines": {
+          "majority_class": 0.5,
+          "random": 0.25
+        }
+      },
+      "severity_accuracy": 1.0,
+      "tier": "lightgbm",
+      "unscored_count": 0
+    },
+    "lightgbm_full_partition": {
+      "attack_type": {
+        "accuracy": 0.994444,
+        "baselines": {
+          "majority_class": 0.166667,
+          "nearest_neighbour_1nn": 0.984444,
+          "random": 0.166667
+        }
+      },
+      "attack_type_accuracy": 0.994444,
+      "avg_latency_ms": 8.222,
+      "binary_detection": {
+        "accuracy": 0.996667,
+        "baselines": {
+          "majority_class": 0.833333,
+          "random": 0.5
+        },
+        "f1": 0.998,
+        "precision": 0.998,
+        "recall": 0.998
+      },
+      "binary_detection_accuracy": 0.996667,
+      "failures": {},
+      "high_severity": {
+        "f1": 0.994432,
+        "precision": 0.996652,
+        "recall": 0.992222
+      },
+      "sample_size": 1800,
+      "severity": {
+        "accuracy": 0.993333,
+        "baselines": {
+          "majority_class": 0.5,
+          "random": 0.25
+        }
+      },
+      "severity_accuracy": 0.993333,
+      "tier": "lightgbm",
+      "unscored_count": 0
+    },
+    "llm": {
+      "attack_type": {
+        "accuracy": 0.2,
+        "baselines": {
+          "majority_class": 0.175,
+          "nearest_neighbour_1nn": null,
+          "random": 0.166667
+        }
+      },
+      "attack_type_accuracy": 0.2,
+      "avg_latency_ms": 1767.244,
+      "binary_detection": {
+        "accuracy": 0.4875,
+        "baselines": {
+          "majority_class": 0.825,
+          "random": 0.5
+        },
+        "f1": 0.594059,
+        "precision": 0.857143,
+        "recall": 0.454545
+      },
+      "binary_detection_accuracy": 0.4875,
+      "failures": {},
+      "high_severity": {
+        "f1": 0.0,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "sample_size": 80,
+      "severity": {
+        "accuracy": 0.2375,
+        "baselines": {
+          "majority_class": 0.5,
+          "random": 0.25
+        }
+      },
+      "severity_accuracy": 0.2375,
+      "tier": "llm",
+      "unscored_count": 0
+    },
+    "system": {
+      "attack_type": {
+        "accuracy": 1.0,
+        "baselines": {
+          "majority_class": 0.175,
+          "nearest_neighbour_1nn": 1.0,
+          "random": 0.166667
+        }
+      },
+      "attack_type_accuracy": 1.0,
+      "avg_latency_ms": 632.176,
+      "binary_detection": {
+        "accuracy": 1.0,
+        "baselines": {
+          "majority_class": 0.825,
+          "random": 0.5
+        },
+        "f1": 1.0,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "binary_detection_accuracy": 1.0,
+      "failures": {},
+      "high_severity": {
+        "f1": 1.0,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "sample_size": 80,
+      "severity": {
+        "accuracy": 1.0,
+        "baselines": {
+          "majority_class": 0.5,
+          "random": 0.25
+        }
+      },
+      "severity_accuracy": 1.0,
+      "tier": "system",
+      "unscored_count": 0
+    }
+  },
+  "unscored_count": 0,
+  "usage": {
+    "calls_attempted": 89,
+    "calls_succeeded": 86,
+    "completion_tokens": 7223,
+    "cost_usd": 0.0121995,
+    "outcomes": {
+      "http_4xx": 3,
+      "success": 86
+    },
+    "per_model": {
+      "gemini-3.6-flash": {
+        "calls": 3,
+        "completion_tokens": 0,
+        "cost_usd": 0.0,
+        "price_source": "https://ai.google.dev/gemini-api/docs/pricing",
+        "priced": true,
+        "prompt_tokens": 0
+      },
+      "openai/gpt-oss-120b": {
+        "calls": 86,
+        "completion_tokens": 7223,
+        "cost_usd": 0.0121995,
+        "price_source": "https://console.groq.com/docs/model/openai/gpt-oss-120b",
+        "priced": true,
+        "prompt_tokens": 52438
+      }
+    },
+    "prices_as_of": "2026-09-05",
+    "pricing_note": "List prices for the paid tier. Every provider key in this build is on a free tier, so actual spend is zero and this figure is what the same traffic would cost at published rates.",
+    "prompt_tokens": 52438,
+    "success_rate": 0.966292
+  }
+}
