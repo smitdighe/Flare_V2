@@ -1,0 +1,3157 @@
+openapi: 3.1.0
+
+# Flare Backend v2 — frozen API contract (PLAN.md Phase 0).
+#
+# Derived by reading frontend/src end to end. Every schema below is what the
+# frozen frontend actually parses, with the file:line citation in the
+# description. Companion document: CONTRACT.md.
+#
+# ENVELOPE — DECIDED. {ok, data, meta} per PLAN §3.2/D17 is the DEFAULT for
+# every response, and is mandatory for every new or modifiable shape.
+#
+# Against that default there is a PINNED EXCEPTION LIST of 11 operations whose
+# response body the frozen frontend already consumes raw — it reads a top-level
+# key (`d.rules`, `data.access_token`) or takes the whole body as state
+# (`setUser(data)`). Wrapping those makes the key undefined and the screen
+# renders empty. Each is marked `x-flare-envelope: none` at the operation, with
+# the consuming file:line. The list is CLOSED: a new operation is enveloped,
+# and nothing joins this list without a frontend change.
+# Full list and rationale: CONTRACT.md §1.3.1.
+#
+# Operations that return a body nothing reads (POST /rules, PUT /playbooks,
+# DELETE *, …) are ENVELOPED — only their error bodies are constrained.
+#
+# ERRORS. Six call sites read a flat `err.detail` (CONTRACT.md §1.4). Error
+# bodies therefore carry BOTH a top-level `detail` string and the structured
+# `error` object from PLAN §3.2, on enveloped and exception operations alike.
+# See the Error schema.
+#
+# SANCTIONED FRONTEND CHANGES referenced below: FE-1 vite ws:true, FE-2 WS
+# handshake + presence, FE-3 API base paths, FE-4 pipeline labels, FE-5 remove
+# fabricated literals, FE-6 fetch GET /alerts on mount, FE-7 drawer reads the
+# real trace, FE-8 data-driven 4x4 confusion matrix, FE-9 complete
+# SEVERITY_LABELS. Table: CONTRACT.md §0.
+
+info:
+  title: Flare Backend v2
+  version: 2.0.0
+  description: >
+    AI-powered SOC alert triage pipeline. This specification is the frozen
+    contract against the teammate-owned frontend; it is written to fit the
+    existing UI, not the other way around. Open questions that the frontend
+    does not pin down are recorded in CONTRACT.md §9 and are marked `TBD` in
+    the descriptions below rather than invented here.
+
+servers:
+  - url: /api/v1
+    description: >
+      All frontend calls are same-origin relative under this prefix
+      (VITE_API_BASE defaults to '', frontend/src/contexts/AuthContext.jsx:5).
+
+tags:
+  - name: auth
+  - name: alerts
+  - name: ingest
+  - name: stream
+  - name: health
+  - name: stats
+  - name: audit
+  - name: eval
+  - name: rules
+  - name: playbooks
+  - name: notifications
+  - name: export
+
+security:
+  - bearerAuth: []
+
+paths:
+
+  # ─────────────────────────────────────────────────────────────────────
+  # AUTH — frontend/src/contexts/AuthContext.jsx, pages/SettingsPage.jsx
+  # ─────────────────────────────────────────────────────────────────────
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Sign in
+      x-flare-envelope: none   # PINNED EXCEPTION 1/11 — AuthContext.jsx:140 reads data.access_token
+      security: []
+      description: >
+        AuthContext.jsx:119. Frontend reads data.access_token,
+        data.refresh_token and data.user directly off the body — NOT enveloped.
+        On failure it reads err.detail (AuthContext.jsx:128).
+        The login screen claims "jwt · 30m access"
+        (flare/AuthPanel.jsx:292); the access token lifetime must literally be
+        30 minutes for that claim to be true (PLAN §3.1).
+
+        DEMO ACCOUNT — DECIDED (CONTRACT.md §8.7). The frozen frontend has a
+        "Quick demo sign in // admin" button that posts the hardcoded pair
+        admin@flare.dev / admin123 (flare/AuthPanel.jsx:72).
+        THE ACCOUNT IS NOT SEEDED BY DEFAULT. It exists only when the server is
+        started with `--demo-seed`. On a default boot the row does not exist,
+        this endpoint returns 401, and the button surfaces that through the
+        existing error path — the button is expected to fail, and that is the
+        intended behaviour, not a bug to work around.
+        The credentials must never appear in the README (PLAN §9). They are
+        already public in the shipped frontend bundle, which is exactly why the
+        account must not exist unless someone deliberately asks for it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenPair' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Create an operator account
+      x-flare-envelope: none   # PINNED EXCEPTION 2/11 — AuthContext.jsx:171 reads data.access_token
+      security: []
+      description: >
+        AuthContext.jsx:150. Same raw shape as login. NOTE: the register form
+        has a role selector (flare/AuthPanel.jsx:214-251) but
+        AuthContext.jsx:153 never transmits it — the frontend cannot request a
+        role. Role is assigned server-side and defaults to `viewer`
+        (PLAN §9: a user cannot set their own role).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, name, password]
+              properties:
+                email: { type: string, format: email }
+                name: { type: string, minLength: 1 }
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  description: >
+                    Frontend enforces >= 8 client-side
+                    (RegisterPage.jsx:29, flare/AuthPanel.jsx:53). The backend
+                    must enforce it independently.
+      responses:
+        '200':
+          description: Registered and authenticated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenPair' }
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: Exchange a refresh token for a new pair
+      x-flare-envelope: none   # PINNED EXCEPTION 3/11 — AuthContext.jsx:71 reads data.access_token
+      security: []
+      description: >
+        AuthContext.jsx:42 (scheduled, 5 min before expiry) and
+        AuthContext.jsx:64 (reactive, on 401). Frontend reads
+        data.access_token and data.refresh_token; `user` is not read on this
+        path. Any non-2xx clears all auth state (AuthContext.jsx:47, 69).
+        Rotation is expected — the frontend overwrites both stored tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token: { type: string }
+      responses:
+        '200':
+          description: New token pair
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenPair' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: Current user
+      x-flare-envelope: none   # PINNED EXCEPTION 4/11 — AuthContext.jsx:93 setUser(data), whole body
+      description: >
+        AuthContext.jsx:85 and :101. The WHOLE body becomes the `user` object
+        (`setUser(data)`), so it must not be enveloped. Only `name` and `email`
+        are read by the render path (pages/SettingsPage.jsx:15-16);
+        ProtectedRoute only tests truthiness (ProtectedRoute.jsx:18).
+        A 401 here triggers exactly one refresh-and-retry
+        (AuthContext.jsx:89, 98-108).
+      responses:
+        '200':
+          description: The authenticated user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/profile:
+    put:
+      tags: [auth]
+      summary: Update own profile
+      description: >
+        pages/SettingsPage.jsx:24, via authFetch (refresh-aware). Only res.ok
+        is read — the response body is discarded (SettingsPage.jsx:29).
+        Not listed in PLAN §3.1; see CONTRACT.md §6.2.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409':
+          description: Email already in use
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /auth/change-password:
+    post:
+      tags: [auth]
+      summary: Change own password
+      description: >
+        pages/SettingsPage.jsx:66, via authFetch. On failure the frontend reads
+        err.detail and renders it verbatim (SettingsPage.jsx:72), so the
+        `detail` string is user-facing — keep it precise and free of internals.
+        PLAN §9 requires this to invalidate outstanding refresh tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, new_password]
+              properties:
+                current_password: { type: string, format: password }
+                new_password: { type: string, format: password, minLength: 8 }
+      responses:
+        '200':
+          description: Password changed; outstanding refresh tokens revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail: { type: string }
+        '400':
+          description: Current password incorrect, or new password rejected
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ─────────────────────────────────────────────────────────────────────
+  # ALERTS — specified but NOT CALLED by the frozen frontend.
+  # ─────────────────────────────────────────────────────────────────────
+
+  /alerts:
+    get:
+      tags: [alerts]
+      summary: Persisted alert list
+      description: >
+        SANCTIONED CHANGE FE-6. The frozen frontend calls nothing here — the
+        feed is WebSocket-only, so a reload shows an empty table (PLAN T17,
+        CONTRACT.md §8.8). FE-6 adds a fetch on mount in DashboardPage.jsx that
+        HYDRATES THE TABLE BEFORE THE WEBSOCKET TAKES OVER; the WS then
+        prepends live alerts onto that seeded buffer.
+
+        Consequences for this endpoint:
+        * ENVELOPED — no frozen consumer constrains it, so it takes the D17
+          default. FE-6 reads `json.data.alerts`.
+        * Sort order is NEWEST FIRST, matching the WS prepend
+          (DashboardPage.jsx:35) so the hydrated and live halves are ordered
+          consistently.
+        * Items are the SAME Alert schema the WS pushes, `trace` included, so
+          the merge is a concat and a de-dupe on `id` with no reshaping.
+        * The client caps its buffer at 200 (DashboardPage.jsx:35); a default
+          `limit` at or below that keeps hydration from being immediately
+          truncated.
+        * FE-6 must de-dupe by `id` — an alert can arrive over the WS while the
+          hydration request is in flight.
+      parameters:
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Offset' }
+        - name: severity
+          in: query
+          schema: { $ref: '#/components/schemas/Severity' }
+        - name: attack_type
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          description: Matches src_ip, dest_ip, alert id, or signature (PLAN §3.1).
+          schema: { type: string }
+      responses:
+        '200':
+          description: Paginated alerts
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [alerts, total]
+                        properties:
+                          alerts:
+                            type: array
+                            items: { $ref: '#/components/schemas/Alert' }
+                          total: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /alerts/attack-types:
+    get:
+      tags: [alerts]
+      summary: The attack types the data actually contains
+      description: >
+        SANCTIONED CHANGE FE-11. `FilterStrip.jsx:40-45` hardcodes six vector
+        options — `sql_injection`, `brute_force`, `port_scan`, `ddos`,
+        `malware`, `other`. The partitions built from CICIDS2017 contain
+        `benign`, `dos`, `ddos`, `port_scan`, `botnet`, `web_attack`. Only two
+        overlap, so four options match nothing and four real classes cannot be
+        filtered for at all. A dropdown whose options are mostly dead is worse
+        than no dropdown.
+
+        FE-11 replaces the hardcoded array with a fetch of this endpoint on
+        mount. The list is derived from the committed partition manifest, not
+        from a second hardcoded list on the server — a canonical set that
+        drifts from the data would reproduce the same defect one layer down.
+
+        `label` is supplied so the frontend renders a name without owning a
+        mapping; the frozen table's own `.replaceAll('_',' ')` (AlertTable.jsx:126)
+        stays correct for `attack_type` values themselves.
+
+        ENVELOPED — no frozen consumer constrains it, so it takes the D17
+        default.
+      responses:
+        '200':
+          description: The canonical classes present in the partitions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [attack_types]
+                        properties:
+                          attack_types:
+                            type: array
+                            items:
+                              type: object
+                              required: [value, label, severity]
+                              properties:
+                                value: { $ref: '#/components/schemas/AttackType' }
+                                label:
+                                  type: string
+                                  description: Display form, e.g. `PORT SCAN`.
+                                severity: { $ref: '#/components/schemas/Severity' }
+                          excluded:
+                            type: object
+                            description: >
+                              Classes present in the raw capture but deliberately
+                              not modelled, with the reason and the row count.
+                              Reported rather than hidden — `heartbleed` has 11
+                              flows in the entire capture and cannot survive a
+                              three-way split.
+                            additionalProperties:
+                              type: object
+                              properties:
+                                reason: { type: string }
+                                rows_available: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ─────────────────────────────────────────────────────────────────────
+  # CORRELATION, RIGHT RAIL, HEADER — PHASE 4.
+  #
+  # CONTRACT.md §6.1 lists these as "listed in PLAN §3.1, no backing call
+  # exists", four of them at High severity: threat clusters, signal velocity,
+  # attack surface, pipeline activity and the threat forecast. There is nothing
+  # to repoint — the panels take props and compute literals (CONTRACT.md §7.4).
+  # These are the producers PLAN I2 requires. All three are ENVELOPED: no frozen
+  # consumer constrains them, so they take the D17 default and none of them
+  # joins the closed eleven-entry exception list.
+  # ─────────────────────────────────────────────────────────────────────
+
+  /alerts/clusters:
+    get:
+      tags: [alerts]
+      summary: Source-IP correlation clusters
+      description: >
+        PLAN §3.1 — "served from the DB with a real min_alerts threshold". The
+        frozen frontend reduces its 200-alert buffer client-side and calls every
+        source IP with one alert a cluster (WorkspacePanel.jsx:498).
+
+        SERVED FROM STORED OUTPUT. The scheduler's `correlation.refresh` job
+        writes `alert_clusters` and this endpoint reads it; it does not
+        recompute. That is what makes the job load-bearing rather than
+        decorative (PLAN T14) — a job that aggregated and discarded would show
+        as an empty screen instead of being invisible. The job stores every
+        group and the THRESHOLD IS APPLIED ON READ, so `min_alerts` can lower
+        the floor as well as raise it.
+
+        `computed_at` is on the payload because a stored aggregate has an age,
+        and a screen that cannot say how old its numbers are can show stale ones
+        without anyone noticing.
+      parameters:
+        - name: min_alerts
+          in: query
+          required: false
+          description: >
+            Defaults to `correlation_min_alerts` from config. A source IP below
+            this floor is not a cluster.
+          schema: { type: integer, minimum: 1, maximum: 1000 }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        '200':
+          description: Clusters
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/ClusterPage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /metrics/rail:
+    get:
+      tags: [metrics]
+      summary: All four right-rail panels
+      description: >
+        One round trip rather than four: the panels render together in a single
+        column, and four requests on every dashboard mount is three more chances
+        for one of them to be the slow one.
+
+        Replaces, in order (CONTRACT.md §7.4) —
+        `+18.4%` becomes threat_forecast.change_pct (PLAN D8);
+        the `x 62` scale on the series becomes signal_velocity, sampled once per
+        interval by the scheduler;
+        `window 60m` becomes signal_velocity.window_minutes, the real span the
+        samples cover;
+        `3 hot` becomes attack_surface.hot;
+        `08 origins // 08 paths` becomes attack_surface.origins and .paths;
+        `10.24.0.0/16` becomes attack_surface.dominant_subnet, measured;
+        the loads `0.82 / 0.64 / 0.71 / 0.45` become
+        pipeline_activity.nodes[].load (PLAN D9).
+      responses:
+        '200':
+          description: Right-rail metrics
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/RailPayload' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /metrics/overview:
+    get:
+      tags: [metrics]
+      summary: Header counters and the top-bar ticker
+      description: >
+        PLAN §3.1 — counters over the ACTIVE FILTER SET. The frozen frontend
+        counts its unfiltered 200-alert buffer (DashboardView.jsx:65), so its
+        TOTAL/HIGH/MEDIUM disagree with the table as soon as a filter is on.
+        The same filter predicates as GET /alerts are used, so the two cannot
+        diverge. `search` is the unified search across source IP, destination
+        IP, alert id and signature (PLAN §3.1).
+      parameters:
+        - name: severity
+          in: query
+          schema: { $ref: '#/components/schemas/Severity' }
+        - name: attack_type
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Counters and ticker
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/OverviewPayload' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ─────────────────────────────────────────────────────────────────────
+  # SCHEDULER — no frontend consumer. PLAN §4.1 / T14.
+  # ─────────────────────────────────────────────────────────────────────
+
+  /admin/jobs:
+    get:
+      tags: [admin]
+      summary: Scheduled-job receipts — admin only
+      description: >
+        PLAN T14 — every job persists what it computes, and this is the
+        receipt: which job, when, how long, and the counts it wrote. A run that
+        raised keeps its exception text. This is what makes "the scheduler is
+        running" a checkable claim rather than an assertion.
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 25 }
+      responses:
+        '200':
+          description: Job runs, newest first
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/JobRunPage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/jobs/{job}/run:
+    post:
+      tags: [admin]
+      summary: Run a scheduled job now — admin only
+      description: >
+        PLAN §4.1 — job triggers are audited. A MANUAL trigger carries the
+        operator's id into the audit row; a scheduled run does not, which is
+        what distinguishes "somebody asked for this" from "the timer fired".
+      parameters:
+        - name: job
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: The run's receipt
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/JobRun' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ─────────────────────────────────────────────────────────────────────
+  # INGEST — no frontend consumer. PLAN D23 / §4.4a, Phase 4a.
+  # ─────────────────────────────────────────────────────────────────────
+
+  /ingest/eve:
+    post:
+      tags: [ingest]
+      summary: Live Suricata EVE ingestion (staged-attack demo)
+      security:
+        - serviceToken: []
+      description: >
+        PLAN D23, §4.4a. NOT CALLED BY THE FRONTEND — the client is our own
+        forwarder script, which tails `eve.json` on the target box and POSTs new
+        events. SPEC ONLY; built in Phase 4a, after Phase 4.
+
+        Events feed THE SAME normalizer and THE SAME graph as replay, tagged
+        `source: "live_demo"` (D24).
+
+        SECURITY — this is the only route accepting unsolicited external input
+        and is treated as its own attack surface (PLAN §9):
+        * DEDICATED SERVICE TOKEN, not a user JWT — separately revocable, and
+          never the demo account's credentials.
+        * ITS OWN RATE LIMIT, independent of the user-facing limiter.
+        * PAYLOAD SIZE CAP, enforced before parsing.
+        * PER-EVENT SCHEMA VALIDATION, strict on the fields the normalizer
+          CONSUMES and permissive about the rest. A malformed value in a field
+          we read rejects THAT RECORD — counted, never fatal to the batch.
+          Unknown top-level keys are IGNORED, not rejected, and are discarded
+          unread so nothing outside the consumed set reaches the pipeline.
+          This is the only implementable rule, not a relaxation: real Suricata
+          8.0.6 alert records carry 22 top-level keys against the nine named
+          below, so rejecting on unknown fields rejects 107 of 107 real records
+          and the endpoint can never ingest live output.
+        * EVERY INTERPOLATED FIELD ESCAPED like any other untrusted input. A
+          Suricata signature is attacker-influenced by construction — the
+          attacker chooses the traffic that generates it — so it reaches a
+          prompt only escaped, length-capped and delimited.
+        * DISABLED BY DEFAULT; enabled only by explicit config.
+
+        NO GROUND TRUTH. Events ingested here carry no label. PLAN I15
+        (extended): a `live_demo` row must never enter the eval or training set,
+        and a test enforces it.
+
+        ROUTING. EVE records have no CICIDS flow features, so these alerts take
+        the D25 path — the LightGBM tier is SKIPPED with an explicit `skipped`
+        trace entry naming the reason, and the alert routes straight to the LLM.
+        Not a silent bypass (PLAN I5).
+
+        ISOLATION. PLAN I19: this endpoint failing, hanging or being switched
+        off must have zero effect on replay, the eval, or any screen.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [events]
+              properties:
+                events:
+                  type: array
+                  minItems: 1
+                  description: >
+                    A batch of Suricata EVE JSON records, exactly as the
+                    forwarder read them. Only `event_type: "alert"` records are
+                    ingested; every other event type is COUNTED and reported in
+                    `dropped_breakdown`, never silently discarded — an eve.json
+                    is mostly flow/http/dns/stats records.
+
+                    The properties below are the subset the normalizer CONSUMES
+                    and the only ones validated. Real records carry many more
+                    (`in_iface`, `pkt_src`, `ip_v`, `app_proto`, `direction`,
+                    `flow`, `metadata`, `tx_id`, `http`, `files`, `tls`, …);
+                    those are accepted and DISCARDED UNREAD rather than
+                    rejected, so a Suricata version bump cannot break ingestion.
+                  items:
+                    type: object
+                    additionalProperties: true
+                    required: [timestamp, alert]
+                    properties:
+                      timestamp: { type: string, format: date-time }
+                      event_type:
+                        type: string
+                        description: >
+                          Anything other than `alert` is counted under
+                          `not_an_alert_record` and dropped. Not a validation
+                          error.
+                      src_ip: { type: string }
+                      src_port: { type: integer, minimum: 0, maximum: 65535 }
+                      dest_ip: { type: string }
+                      dest_port: { type: integer, minimum: 0, maximum: 65535 }
+                      proto: { type: string }
+                      alert:
+                        type: object
+                        additionalProperties: true
+                        required: [signature]
+                        properties:
+                          signature_id: { type: integer }
+                          signature: { type: string, minLength: 1, maxLength: 512 }
+                          category: { type: string, maxLength: 256 }
+                          severity: { type: integer, minimum: 1, maximum: 4 }
+      responses:
+        '202':
+          description: Accepted for triage
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [accepted, dropped]
+                        properties:
+                          accepted:
+                            type: integer
+                            description: Records queued for triage.
+                          dropped:
+                            type: integer
+                            description: >
+                              Non-alert or malformed records. Counted, never
+                              silently discarded (PLAN T13).
+                          alert_ids:
+                            type: array
+                            items: { type: string }
+        '401':
+          description: Missing or invalid service token
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: Ingestion disabled by config
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '413':
+          description: Payload exceeds the configured size cap
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503':
+          description: >
+            Triage queue full. Honest backpressure, never a silent drop
+            (PLAN §4.1).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  # ─────────────────────────────────────────────────────────────────────
+  # HEALTH — frontend/src/components/WorkspacePanel.jsx:10-114
+  # ─────────────────────────────────────────────────────────────────────
+
+  /health:
+    get:
+      tags: [health]
+      summary: Cheap health — local state only, NO provider calls
+      description: >
+        CHEAP AND LOCAL — DECIDED. This endpoint MUST NOT make any outbound
+        provider call. It answers from locally held state: last known status per
+        dependency, the latency recorded on the last real probe, DB
+        reachability, queue depth. Zero Groq / Gemini / AbuseIPDB / VirusTotal
+        quota is consumed, no matter how often it is hit.
+
+        This is the endpoint on the 30-second timer. WorkspacePanel.jsx:18 with
+        `setInterval(fetchHealth, 30000)` at WorkspacePanel.jsx:39, plus a
+        manual Refresh button. If it probed providers it would burn four metered
+        quotas every 30 seconds per open tab (PLAN T4/§10) and exhaust the
+        Gemini free tier inside the demo.
+
+        SCOPE CORRECTION: this poll is NOT in the top bar. It lives in
+        HealthPanel, which mounts only while the Health Metrics screen is open
+        (WorkspacePanel.jsx:1137), so the timer runs only on that screen and
+        stops on navigate-away. TopBar.jsx makes no network call at all — its
+        3600 ms interval (TopBar.jsx:15) only rotates the client-side ticker.
+        Nothing in the frozen frontend calls /health/deep. See CONTRACT.md §9.5.
+
+        CACHE POLICY — DECIDED. Provider check results are cached for
+        60 SECONDS. A cached result older than 120 SECONDS is STALE and must be
+        refreshed on the next request rather than served. Between 60s and 120s
+        the cached value is served as-is.
+        With the HealthPanel poll at 30s, that means the poll hits warm cache
+        most of the time and NEVER live-probes a provider from this endpoint —
+        the refresh at the 120s boundary reads local state, not the network.
+        Any genuine provider probing happens through /health/deep only.
+
+        `latency_ms` values served here are the ones measured by the last real
+        probe, with `checked_at` saying when that was — cached measurements,
+        never synthesized. A dependency never yet probed reports
+        `status: unknown` with `latency_ms: null`, never `ok`.
+
+        Envelope-tolerant (`json.data || json`, WorkspacePanel.jsx:28).
+        Authenticated — the frontend sends a Bearer token
+        (WorkspacePanel.jsx:19) and PLAN §9 requires it (an anonymous health
+        endpoint is how the prior codebase leaked four quotas per anonymous
+        hit). On a non-2xx the frontend renders `res.text()` raw
+        (WorkspacePanel.jsx:24), so error bodies here are user-facing.
+      responses:
+        '200':
+          description: Service health
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/HealthPayload' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /health/deep:
+    get:
+      tags: [health]
+      summary: Deep probe — MANUAL REFRESH ONLY, makes real provider calls
+      description: >
+        MANUAL-REFRESH-ONLY — DECIDED. This is the real four-provider probe
+        (Groq, Gemini, AbuseIPDB, VirusTotal) and it SPENDS METERED QUOTA on
+        every call. It must never sit behind a timer.
+
+        Triggered only by the explicit Refresh button on the Health Metrics
+        screen (WorkspacePanel.jsx:51 / :81), and directly by the operator
+        during the demo-day runbook quota check (PLAN §19 step 3).
+
+        The frozen frontend does not call this path — its Refresh button hits
+        /health. Pointing that button here is part of the FE-3 base-path pass;
+        until then the deep probe is operator-invoked only. Whichever way it is
+        wired, THE 30-SECOND TIMER MUST KEEP HITTING /health, NOT THIS.
+
+        Every result written here updates the cached state that /health serves,
+        so a manual refresh is what makes the cheap endpoint's numbers current.
+        Rate-limit this endpoint per user regardless of who calls it.
+
+        Shape is not constrained by any frozen consumer; fields are from
+        PLAN §11.
+      responses:
+        '200':
+          description: Deep health
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          services:
+                            type: array
+                            items: { $ref: '#/components/schemas/ServiceHealth' }
+                          queue_depth:
+                            type: object
+                            additionalProperties: { type: integer }
+                          in_flight: { type: integer }
+                          dropped:
+                            type: object
+                            additionalProperties: { type: integer }
+                          degraded: { type: boolean }
+                          offline_mode: { type: boolean }
+                          providers:
+                            type: object
+                            description: >
+                              PLAN I16 — model IDs and per-key COUNTERS, keyed
+                              by label. `groq.keys[]` / `gemini.keys[]` each
+                              carry {key_id, purpose, dead, dead_reason,
+                              cooling, cooling_for_seconds, calls,
+                              rate_limited}, and each provider additionally
+                              carries `live_keys` (int) and `dead_keys`
+                              ({key_id: reason}). Never key material.
+
+
+                              PLAN D39 — `dead` and `cooling` are SEPARATE
+                              facts and must not be conflated by a consumer. A
+                              429 cools a key and it returns on its own; a hard
+                              auth rejection (403 project-denied, 401, or a 400
+                              carrying an explicit invalid-key marker) removes
+                              it for the process lifetime and only a new
+                              credential brings it back. A dead key reports
+                              `cooling: false` and `cooling_for_seconds: 0`,
+                              because it is not waiting for anything.
+                          reason_budget:
+                            type: object
+                            description: >
+                              PLAN §10.4 — the reasoning rate budget:
+                              {calls_per_minute, capacity, available, admitted,
+                              rejected}. `rejected` counts alerts above the
+                              severity floor that the free-tier cap turned away;
+                              each one carries a traced skip on its alert.
+                          intel_cache:
+                            type: object
+                            description: >
+                              PLAN §10.2 — per-IP cache stats {entries,
+                              max_entries, ttl_seconds, hits, misses}. Hits are
+                              quota units not spent.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ─────────────────────────────────────────────────────────────────────
+  # STATS — frontend/src/components/WorkspacePanel.jsx:116-217
+  # ─────────────────────────────────────────────────────────────────────
+
+  /stats:
+    get:
+      tags: [stats]
+      summary: Event velocity buckets
+      description: >
+        WorkspacePanel.jsx:124. Envelope-tolerant (`json.data || json`,
+        WorkspacePanel.jsx:133). Fetched ONCE on mount — no polling
+        (WorkspacePanel.jsx:142-144).
+        Only the LAST 20 buckets render (WorkspacePanel.jsx:195).
+        PLAN D7 specifies real 30-minute buckets.
+      responses:
+        '200':
+          description: Timeline and velocity
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/StatsPayload' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ─────────────────────────────────────────────────────────────────────
+  # AUDIT — frontend/src/components/WorkspacePanel.jsx:219-338
+  # ─────────────────────────────────────────────────────────────────────
+
+  /audit/logs:
+    get:
+      tags: [audit]
+      summary: Audit trail (all actors) — admin only
+      description: >
+        WorkspacePanel.jsx:239. Envelope-tolerant (`data.data || data`,
+        WorkspacePanel.jsx:254).
+        MUST RETURN 403 FOR NON-ADMINS. The frontend branches on exactly 403 to
+        fall back to /audit/logs/me (WorkspacePanel.jsx:243). Returning
+        200-with-filtered-rows means a non-admin never sees the "my logs" view.
+        `limit` is always 25 (WorkspacePanel.jsx:229). `total` must be the count
+        AFTER filters are applied — pagination divides by it
+        (WorkspacePanel.jsx:266). See CONTRACT.md §9.7.
+      parameters:
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Offset' }
+        - name: action
+          in: query
+          description: >
+            Free-form. The UI populates its dropdown from the current page's
+            rows only (WorkspacePanel.jsx:269), so it can only send values it
+            has already seen.
+          schema: { type: string }
+        - name: resource_type
+          in: query
+          description: >
+            The UI offers a fixed list — rule, playbook, user, alert
+            (WorkspacePanel.jsx:288-291). Other values render but are not
+            filterable from the UI.
+          schema: { type: string }
+      responses:
+        '200':
+          description: Audit page
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/AuditPage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /audit/logs/me:
+    get:
+      tags: [audit]
+      summary: Audit trail scoped to the calling user
+      description: >
+        WorkspacePanel.jsx:244. Reached ONLY as the 403 fallback from
+        /audit/logs. Identical shape and identical query parameters.
+      parameters:
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Offset' }
+        - name: action
+          in: query
+          schema: { type: string }
+        - name: resource_type
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Audit page for the calling user
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/AuditPage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ─────────────────────────────────────────────────────────────────────
+  # EVAL — frontend/src/components/WorkspacePanel.jsx:340-496
+  # ─────────────────────────────────────────────────────────────────────
+
+  /eval:
+    get:
+      tags: [eval]
+      summary: Held-out evaluation results
+      description: >
+        WorkspacePanel.jsx:350. Envelope-tolerant (`json.data || json`,
+        WorkspacePanel.jsx:359). Fetched on mount; `?force=true` on Refresh.
+        The un-forced call should serve a cached run (PLAN E6, and PLAN §19
+        step 8 pre-executes the eval so the panel is not waiting on a live
+        provider under judging pressure).
+        CONSTRAINT: confusion_matrix is structurally 3x3 — the grid is
+        `grid-cols-4` (WorkspacePanel.jsx:444) = 1 header column + 3 data
+        columns. Four or five labels wrap and render garbage. PLAN §3.2
+        (5 severities), PLAN §7.3 ("4 classes") and PLAN §3.1 ("3x3") disagree;
+        see CONTRACT.md §8.4.
+        Per-tier blocks and baselines (PLAN E12/E14/E15/E17) are additive — the
+        screen has no slot for them (CONTRACT.md §8.5) — so they are included
+        here as optional properties for the API and README consumers.
+      parameters:
+        - name: force
+          in: query
+          description: Bypass the result cache and re-run. Sent as the literal string "true".
+          schema: { type: string, enum: ['true'] }
+      responses:
+        '200':
+          description: Evaluation payload
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/EvalPayload' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ─────────────────────────────────────────────────────────────────────
+  # RULES — WorkspacePanel.jsx:659-774, AlertDetailDrawer.jsx:32-41
+  # ─────────────────────────────────────────────────────────────────────
+
+  /rules:
+    get:
+      tags: [rules]
+      summary: List rules owned by the caller
+      x-flare-envelope: none   # PINNED EXCEPTION 5/11 — WorkspacePanel.jsx:670 reads d.rules
+      description: >
+        WorkspacePanel.jsx:668. RAW — the frontend reads `d.rules` off the top
+        level (WorkspacePanel.jsx:670). Enveloping this makes `d.rules`
+        undefined and the screen renders "No rules yet" permanently.
+        PLAN §9 requires rules be scoped to their owner on lookup, not just on
+        list.
+      responses:
+        '200':
+          description: Rules
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [rules]
+                properties:
+                  rules:
+                    type: array
+                    items: { $ref: '#/components/schemas/Rule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [rules]
+      summary: Create a rule
+      description: >
+        WorkspacePanel.jsx:680. On failure the frontend reads `e.detail` and
+        renders it verbatim (WorkspacePanel.jsx:685). The response body is
+        discarded (CONTRACT.md §9.8).
+        The UI can only ever emit ONE condition and ONE action, with
+        `logic` fixed to "AND" and the action fixed to
+        `{type:"set_severity", value:"high"}` (WorkspacePanel.jsx:663) — the
+        action is not editable in the form. PLAN §4.1 also requires `add_tag`
+        and `set_attack_type` to work; they cannot be created through this UI.
+        PLAN §9: user-supplied regex (via the `contains` operator) must be
+        compiled with a complexity bound and a match timeout.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RuleInput' }
+      responses:
+        '201':
+          description: >
+            Created. DECIDED (CONTRACT.md §9.8) — returns the created resource,
+            ENVELOPED. The frozen frontend reads only res.ok and discards the
+            body, so nothing constrains it and it takes the D17 default.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Rule' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /rules/{rule_id}:
+    parameters:
+      - name: rule_id
+        in: path
+        required: true
+        schema: { type: integer }
+    delete:
+      tags: [rules]
+      summary: Delete a rule
+      description: >
+        WorkspacePanel.jsx:694. The frontend ignores the response entirely and
+        immediately re-lists. Must be owner-scoped (PLAN §9, IDOR).
+        NOTE: there is no PUT — the frozen UI cannot update a rule, and there is
+        no enable/disable control despite `is_enabled` being rendered
+        (WorkspacePanel.jsx:765). CONTRACT.md §6.1.
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /rules/alerts/{alert_id}/explain-rules:
+    get:
+      tags: [rules]
+      summary: Per-condition rule trace for one alert
+      x-flare-envelope: none   # PINNED EXCEPTION 6/11 — AlertDetailDrawer.jsx:38 setRuleTrace(d), whole body
+      description: >
+        AlertDetailDrawer.jsx:36. RAW — the whole body becomes the component's
+        state (`setRuleTrace(d)`, AlertDetailDrawer.jsx:38). Fired on every
+        drawer open.
+        DESPITE THE NAME, `matched_rules` must contain EVERY rule evaluated,
+        fired or not: the UI renders non-firing rules with a "no match" chip and
+        a full per-condition breakdown (AlertDetailDrawer.jsx:59). That trace is
+        the drawer's strongest beat — an empty array renders
+        "No rules evaluated."
+      parameters:
+        - name: alert_id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^ALT-[0-9A-F]{6}$' }
+      responses:
+        '200':
+          description: Rule trace
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RuleTrace' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ─────────────────────────────────────────────────────────────────────
+  # PLAYBOOKS — WorkspacePanel.jsx:776-1008, AlertDetailDrawer.jsx:20-55
+  # ─────────────────────────────────────────────────────────────────────
+
+  /playbooks:
+    get:
+      tags: [playbooks]
+      summary: List playbooks
+      x-flare-envelope: none   # PINNED EXCEPTION 7/11 — WorkspacePanel.jsx:791 reads d.playbooks
+      description: >
+        WorkspacePanel.jsx:789 and AlertDetailDrawer.jsx:23. RAW — the frontend
+        reads `d.playbooks` (WorkspacePanel.jsx:791). The drawer uses the same
+        list to populate its "Queue action" picker and auto-selects the first
+        entry (AlertDetailDrawer.jsx:28).
+      responses:
+        '200':
+          description: Playbooks
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [playbooks]
+                properties:
+                  playbooks:
+                    type: array
+                    items: { $ref: '#/components/schemas/Playbook' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [playbooks]
+      summary: Create a playbook
+      description: >
+        WorkspacePanel.jsx:834 (no id in the path). Errors read `e.detail`
+        (WorkspacePanel.jsx:839). Steps with an empty title are stripped
+        client-side, so `steps: []` is a legal body (WorkspacePanel.jsx:832).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlaybookInput' }
+      responses:
+        '201':
+          description: >
+            Created. Returns the created resource, ENVELOPED (CONTRACT.md §9.8).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Playbook' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /playbooks/{playbook_id}:
+    parameters:
+      - name: playbook_id
+        in: path
+        required: true
+        schema: { type: integer }
+    put:
+      tags: [playbooks]
+      summary: Replace a playbook
+      description: >
+        WorkspacePanel.jsx:834 (id in the path when `editing` is set). Full
+        replacement — the form always sends every field.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlaybookInput' }
+      responses:
+        '200':
+          description: >
+            Updated. Returns the updated resource, ENVELOPED (CONTRACT.md §9.8).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Playbook' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [playbooks]
+      summary: Delete a playbook
+      description: WorkspacePanel.jsx:847. Response ignored; owner-scoped.
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /playbooks/{playbook_id}/execute:
+    post:
+      tags: [playbooks]
+      summary: Start a playbook execution
+      x-flare-envelope: none   # PINNED EXCEPTION 8/11 — WorkspacePanel.jsx:864 reads data.execution_id
+      description: >
+        WorkspacePanel.jsx:858 and AlertDetailDrawer.jsx:49. RAW — the frontend
+        reads `data.execution_id` (WorkspacePanel.jsx:864) and immediately GETs
+        /playbooks/executions/{execution_id}.
+        `alert_id` is OPTIONAL: with no alert selected the query string is empty
+        (WorkspacePanel.jsx:856-858). See CONTRACT.md §9.9.
+        PLAN §4.1 requires the execution to actually run, not just write a row
+        (PLAN T14).
+      parameters:
+        - name: playbook_id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: alert_id
+          in: query
+          required: false
+          description: >
+            DECIDED — OPTIONAL. With no alert selected the frontend builds an
+            empty query string and posts `…/execute?` with no alert_id
+            (WorkspacePanel.jsx:856-858). Rejecting the call in that case breaks
+            the Playbooks screen's Execute button.
+          schema: { type: string }
+      responses:
+        '201':
+          description: Execution started
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [execution_id]
+                properties:
+                  execution_id: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /playbooks/executions/{execution_id}:
+    get:
+      tags: [playbooks]
+      summary: Execution state
+      x-flare-envelope: none   # PINNED EXCEPTION 9/11 — WorkspacePanel.jsx:805 setExecution(body), whole body
+      description: >
+        WorkspacePanel.jsx:802, :864, :880. RAW — the whole body becomes the
+        component's `execution` state (`setExecution(await res.json())`).
+        POLLED EVERY 3 SECONDS while `status !== "completed"`
+        (WorkspacePanel.jsx:799-806). Any other terminal status polls forever;
+        see CONTRACT.md §9.6.
+      parameters:
+        - name: execution_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Execution
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Execution' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /playbooks/executions/{execution_id}/steps/{step_index}:
+    post:
+      tags: [playbooks]
+      summary: Complete one step
+      description: >
+        WorkspacePanel.jsx:874. `step_index` is a zero-based PATH parameter.
+        The body is always `{"notes": ""}` — the frozen UI has no notes input,
+        so PLAN §4.1's per-step notes cannot be supplied from this frontend.
+        Only res.ok is read; the frontend then re-GETs the execution.
+        PLAN §4.1: step types `auto` and `approval` must be branched on for
+        real, or the type field removed — no bookkeeping that pretends.
+      parameters:
+        - name: execution_id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: step_index
+          in: path
+          required: true
+          schema: { type: integer, minimum: 0 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes: { type: string }
+      responses:
+        '200':
+          description: >
+            Step completed. ENVELOPED — this operation is NOT on the pinned
+            exception list (CONTRACT.md §1.3.1), and the frozen frontend reads
+            only res.ok here before re-GETting the execution, so nothing
+            constrains the body and it takes the D17 default (CONTRACT.md §9.8).
+            Earlier revisions of this file showed a raw Execution, which
+            contradicted the closed eleven-entry exception list; the list wins.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Execution' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: >
+            The step is an `approval` and the caller's role cannot approve.
+            PLAN §4.1 requires `auto` and `approval` to be branched on for real;
+            this status is half of that branch (the other half is the 409 on an
+            `auto` step).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: >
+            Step is not the current step, is already completed, is on a
+            terminal execution, or is an `auto` step — which is run by the
+            system and is not waiting for anyone.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  # ─────────────────────────────────────────────────────────────────────
+  # NOTIFICATIONS — WorkspacePanel.jsx:1010-1101
+  # ─────────────────────────────────────────────────────────────────────
+
+  /notifications/preferences:
+    get:
+      tags: [notifications]
+      summary: List the caller's notification preferences
+      x-flare-envelope: none   # PINNED EXCEPTION 10/11 — WorkspacePanel.jsx:1020 reads d.preferences
+      description: >
+        WorkspacePanel.jsx:1018. RAW — the frontend reads `d.preferences`
+        (WorkspacePanel.jsx:1020). `channel` is rendered with `.toUpperCase()`
+        and no null guard (WorkspacePanel.jsx:1085), so it must never be null.
+      responses:
+        '200':
+          description: Preferences
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [preferences]
+                properties:
+                  preferences:
+                    type: array
+                    items: { $ref: '#/components/schemas/NotificationPreference' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [notifications]
+      summary: Create or update a preference (UPSERT)
+      description: >
+        WorkspacePanel.jsx:1028 (toggle) and :1038 (add). BOTH paths POST here.
+        The toggle re-POSTs the SAME channel + event_type with `is_enabled`
+        flipped (WorkspacePanel.jsx:1031) — so this MUST be an upsert keyed on
+        (user, channel, event_type). A plain insert creates a duplicate row on
+        every toggle instead of flipping the existing one.
+        PLAN §17 cuts Slack ("scaffolded but not sending") while the UI offers
+        it as an equal choice; see CONTRACT.md §8.6.
+        PLAN §9 requires this change be written to the audit log.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel, event_type, is_enabled]
+              properties:
+                channel: { $ref: '#/components/schemas/NotificationChannel' }
+                event_type: { $ref: '#/components/schemas/NotificationEventType' }
+                is_enabled: { type: boolean }
+      responses:
+        '200':
+          description: >
+            Upserted. Returns the resulting resource, ENVELOPED
+            (CONTRACT.md §9.8).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/NotificationPreference' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /notifications/preferences/{preference_id}:
+    delete:
+      tags: [notifications]
+      summary: Delete a preference
+      description: WorkspacePanel.jsx:1048. Response ignored; owner-scoped.
+      parameters:
+        - name: preference_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /notifications/log:
+    get:
+      tags: [notifications]
+      summary: The dispatch record — sends, SUPPRESSIONS and failures
+      description: >
+        PHASE 5. No frozen-frontend consumer; enveloped by the D17 default like
+        every other endpoint no frozen consumer constrains.
+        PLAN §8.3 requires that every send, suppression and failure be
+        recorded. A SUPPRESSION IS A ROW, not an absence — "we did not email
+        you because you were looking at it" is the evidence the presence logic
+        worked, and an absent row is indistinguishable from a dispatcher that
+        never ran.
+        ONE ROW PER (user, event_type, debounce window), not per alert:
+        `rollup_count` is how many alerts that window covered, which is the
+        same collapse the outgoing email performs.
+        OWNER-SCOPED ON LOOKUP (PLAN §9, IDOR) — a log row names who was
+        emailed about what and when.
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: outcome
+          in: query
+          description: Filter by outcome. An unrecognised value is a 422.
+          schema:
+            type: string
+            enum: [sent, suppressed, failed]
+      responses:
+        '200':
+          description: The caller's notification log, newest first.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        required: [entries, total, limit, offset]
+                        properties:
+                          entries:
+                            type: array
+                            items: { $ref: '#/components/schemas/NotificationLogEntry' }
+                          total: { type: integer }
+                          limit: { type: integer }
+                          offset: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  # ─────────────────────────────────────────────────────────────────────
+  # EXPORT — WorkspacePanel.jsx:601-657
+  # ─────────────────────────────────────────────────────────────────────
+
+  /export/alerts/{format}:
+    get:
+      tags: [export]
+      summary: Export the filtered alert set
+      x-flare-envelope: none   # PINNED EXCEPTION 11/11 — binary blob, res.blob() WorkspacePanel.jsx:618
+      description: >
+        WorkspacePanel.jsx:614. Returns a BINARY BLOB — the frontend calls
+        res.blob() and triggers a download named `flare_alerts.{format}`
+        (WorkspacePanel.jsx:618-623). Never enveloped.
+        `limit` is always the literal "500" (WorkspacePanel.jsx:610). Filters
+        come from the live dashboard filter state, so the export must apply the
+        SAME filter semantics as the on-screen list.
+        A failure is swallowed to console.error (WorkspacePanel.jsx:626) — the
+        user sees nothing, so failures must be rare and loud server-side.
+        PLAN §9: escape leading = + - @ in CSV cells; emit headers even on an
+        empty set.
+      parameters:
+        - name: format
+          in: path
+          required: true
+          schema: { type: string, enum: [csv, pdf] }
+        - name: severity
+          in: query
+          schema: { $ref: '#/components/schemas/Severity' }
+        - name: attack_type
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          schema: { type: string }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: The export file
+          content:
+            text/csv:
+              schema: { type: string }
+            application/pdf:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ─────────────────────────────────────────────────────────────────────
+  # STREAM
+  # ─────────────────────────────────────────────────────────────────────
+
+  /ws/stream:
+    get:
+      tags: [stream]
+      summary: Live alert WebSocket (documented here; not an HTTP endpoint)
+      security: []
+      description: >
+        frontend/src/hooks/useAlertStream.js:19.
+
+        AUTH — DECIDED, FIRST-MESSAGE HANDSHAKE (CONTRACT.md §8.9).
+        The token moves OUT of the query string, which PLAN §9 forbids because
+        it lands in access logs, browser history and proxy logs. This folds into
+        FE-2: same file (useAlertStream.js), same edit pass as the presence
+        change.
+
+        Handshake sequence:
+          1. Client opens `ws://<origin>/api/v1/ws/stream` with NO query string.
+          2. Server accepts the socket and starts an authentication timer. It
+             sends NOTHING and streams NOTHING until step 4 succeeds.
+          3. Client's `onopen` sends, as its first frame:
+                {"type":"auth","token":"<jwt>"}
+             followed immediately by the existing
+                {"type":"presence","state":"active"}
+          4. Server validates. On success it begins streaming alerts. There is
+             no success acknowledgement frame — the frozen `onmessage` handler
+             drops any message without a top-level `id` (useAlertStream.js:30),
+             so an ack would be silently discarded and must not be relied on.
+          5. On failure, or if no auth frame arrives before the timer expires,
+             the server closes with 4001 (invalid/expired token) or 4003
+             (valid token, insufficient role). The client does not reconnect on
+             either (useAlertStream.js:37).
+
+        The auth timer is what stops an unauthenticated socket being held open;
+        keep it short (a few seconds) and count expiries in health.
+        Any frame received before a successful auth is discarded.
+
+        SERVER -> CLIENT: one bare Alert JSON object per message (schema Alert).
+        Not enveloped, not tagged, not batched. A message without a top-level
+        `id` is silently dropped (useAlertStream.js:30). There is no `type`
+        discriminator on inbound messages, so heartbeats and control frames are
+        impossible without an FE change. The client prepends and truncates to
+        200 with no de-duplication (DashboardPage.jsx:35), so re-sending an
+        alert produces a duplicate React key. PLAN D15 confirmed: one complete
+        triaged alert per message.
+
+        CLIENT -> SERVER (schema StreamCommand):
+          {"type":"pause"}                  useAlertStream.js:64
+          {"type":"resume"}                 useAlertStream.js:65
+          {"type":"config","speed":<num>}   useAlertStream.js:66 — exposed by
+                                            the hook but never called
+          {"type":"presence","state":...}   NOT SENT — FE-2 still required
+
+        CLOSE CODES: 4001 and 4003 mean auth failure and stop the client from
+        reconnecting (useAlertStream.js:37). Every other close triggers
+        exponential backoff, min(1000 * 2^n, 30000) ms. A client-initiated
+        close(1000) clears the timer first, so PLAN T8's reconnect leak is NOT
+        present in this frontend.
+
+        PLAN §10: one stream loop per server, not per connection — HIS runs an
+        independent loop per socket, so every open tab multiplies real API spend.
+      responses:
+        '101': { description: Switching Protocols }
+        '400': { description: Missing or malformed token }
+
+  # /stream/token (SSE) is intentionally omitted.
+  # DashboardPage.jsx:48 constructs it, but the branch is gated on
+  # `!useWebSocket` and useWebSocket is initialised true with setUseWebSocket
+  # never called anywhere (DashboardPage.jsx:17, :45). Dead code, and PLAN D14
+  # drops SSE. Do not implement it.
+
+components:
+
+  securitySchemes:
+    serviceToken:
+      type: http
+      scheme: bearer
+      description: >
+        Dedicated token for the EVE forwarder (PLAN D23, §9). NOT a user JWT:
+        separately issued, separately revocable, carrying no user identity and
+        no role. Valid only on POST /ingest/eve.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        `Authorization: Bearer <access_token>`. Only pages/SettingsPage.jsx uses
+        the refresh-aware `authFetch`; every WorkspacePanel and
+        AlertDetailDrawer call reads the token straight from localStorage and
+        does NOT retry on 401 (CONTRACT.md §1.2).
+
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      description: >
+        Hard-capped server-side (PLAN §3.2). Audit sends 25
+        (WorkspacePanel.jsx:229); export sends 500 (WorkspacePanel.jsx:610).
+      schema: { type: integer, minimum: 1, maximum: 500, default: 50 }
+    Offset:
+      name: offset
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+
+  responses:
+    Unauthorized:
+      description: >
+        Missing, invalid or expired credentials. authFetch refreshes once and
+        retries (AuthContext.jsx:193); WorkspacePanel calls do not and render
+        "Authentication required — please log in again."
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: >
+        Role does not permit this operation. On /audit/logs specifically this is
+        a ROUTING signal, not an error — the frontend falls back to
+        /audit/logs/me (WorkspacePanel.jsx:243).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Resource does not exist, or is not owned by the caller.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ValidationError:
+      description: Request body failed validation.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    RateLimited:
+      description: >
+        PLAN §9: must be a real 429 as a JSONResponse, never a 500, with CORS
+        middleware registered last so the response carries headers.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+
+    # ── envelope + errors ──────────────────────────────────────────────
+
+    Envelope:
+      type: object
+      required: [ok, data, meta]
+      description: >
+        PLAN §3.2 / D17. Applied ONLY to the five envelope-tolerant endpoints
+        that parse with `json.data || json`: /health, /stats, /eval,
+        /audit/logs, /audit/logs/me — plus /alerts and /health/deep, which have
+        no existing consumer. Every other endpoint is specified raw because the
+        frozen frontend reads a top-level key or consumes the whole body.
+        See CONTRACT.md §1.3 and §8.1.
+      properties:
+        ok: { type: boolean, const: true }
+        data: {}
+        meta:
+          type: object
+          required: [latency_ms]
+          properties:
+            latency_ms:
+              type: number
+              description: >
+                Measured with perf_counter (PLAN §11). Never a hardcoded 0.0.
+
+    Error:
+      type: object
+      required: [ok, detail, error]
+      description: >
+        CARRIES BOTH SHAPES BY DESIGN. PLAN §3.2 specifies
+        {ok:false, error:{code,message,detail}}, but six frontend call sites
+        read a flat `err.detail` (CONTRACT.md §1.4) and fall back to a generic
+        string when it is absent. Emitting `detail` at the top level alongside
+        the structured object satisfies both with no frontend edit.
+        `detail` is rendered verbatim to the user on the login, register,
+        change-password, rule-create, playbook-save and playbook-execute paths —
+        keep it precise and free of internals (PLAN §9: no secrets in logs or
+        messages).
+      properties:
+        ok: { type: boolean, const: false }
+        detail:
+          type: string
+          description: User-facing message. Read by the frozen frontend.
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, examples: [invalid_credentials, rate_limited] }
+            message: { type: string }
+            detail: {}
+
+    # ── auth ───────────────────────────────────────────────────────────
+
+    TokenPair:
+      type: object
+      required: [access_token, refresh_token, user]
+      description: >
+        NOT ENVELOPED — AuthContext.jsx:140-144 reads data.access_token,
+        data.refresh_token and data.user off the top level.
+        /auth/refresh returns the same shape but the frontend ignores `user`
+        there (AuthContext.jsx:71-74).
+      properties:
+        access_token:
+          type: string
+          description: >
+            JWT. MUST expire in 30 minutes — the login panel states
+            "jwt · 30m access" (flare/AuthPanel.jsx:292) and PLAN §3.1 requires
+            that claim be literally true. The frontend decodes the `exp` claim
+            client-side and schedules a refresh 5 minutes before it
+            (AuthContext.jsx:36-39), so `exp` must be present and in seconds.
+        refresh_token:
+          type: string
+          description: 7-day lifetime per PLAN §3.1. Stored in localStorage.
+        token_type:
+          type: string
+          const: bearer
+          description: Not read by the frontend; included for convention.
+        user: { $ref: '#/components/schemas/User' }
+
+    User:
+      type: object
+      required: [id, email, name, role, created_at]
+      description: >
+        The WHOLE /auth/me body becomes this object (AuthContext.jsx:93).
+        Only `name` and `email` are read by the render path
+        (pages/SettingsPage.jsx:15-16). `role` is never read anywhere in the
+        frontend — included for the audit trail and server-side RBAC.
+        See CONTRACT.md §9.1 and §9.3.
+      properties:
+        id: { type: integer }
+        email: { type: string, format: email }
+        name: { type: string }
+        role:
+          $ref: '#/components/schemas/Role'
+          description: >
+            DECIDED — emitted. Assigned server-side, defaults to `viewer`
+            (PLAN §9). The register form's role selector is never transmitted
+            (AuthContext.jsx:153). The frontend ignores this field; it is
+            emitted because it is useful in the audit trail and harmless to
+            expose.
+        created_at: { type: string, format: date-time }
+
+    Role:
+      type: string
+      enum: [viewer, analyst, admin]
+      description: >
+        From the register form's (non-transmitted) selector,
+        flare/AuthPanel.jsx:7-11. PLAN §9 requires require_role be genuinely
+        enforced on user CRUD, audit, jobs and tenants.
+
+    # ── alerts ─────────────────────────────────────────────────────────
+
+    Severity:
+      type: string
+      enum: [critical, high, medium, low, unknown]
+      description: >
+        PLAN §3.2 fixes exactly these five. `unknown` is a real renderable
+        state meaning "classification failed or was not attempted", never a
+        silent default (PLAN I13). It is a transport value only — it is NOT a
+        scoreable class; see ScoredSeverity and ConfusionMatrix.
+
+        SANCTIONED CHANGE FE-9 completes AlertTable.jsx:5-15, which today has
+        label and badge entries for `high`, `medium`, `low` ONLY. Until FE-9
+        lands, a `critical` alert renders the text "UNKNOWN" with `low` styling
+        (AlertTable.jsx:121-122) while the status dot beside it correctly
+        renders red (StatusDot.jsx:2) and the drawer shows CRITICAL — one row,
+        three severities. FE-9 adds the missing `critical` and `unknown` keys to
+        both maps. It is a map completion, not a design change, and it unblocks
+        the backend emitting `critical` as PLAN §3.2 requires.
+
+        STILL OPEN AFTER FE-9: the severity FILTER offers only high/medium/low
+        (FilterStrip.jsx:3-8), so critical and unknown alerts render correctly
+        but cannot be filtered for. Not in scope for FE-1..FE-9.
+        Playbook `severity_threshold` DOES offer critical
+        (WorkspacePanel.jsx:910-914).
+
+    ScoredSeverity:
+      type: string
+      enum: [critical, high, medium, low]
+      description: >
+        The four classes the classifier is SCORED against — Severity minus
+        `unknown`. Used for confusion-matrix axes and for the per-row
+        true/predicted labels in the eval. An alert that failed classification
+        is counted in `unscored_count`, not given a fifth class.
+
+    AttackType:
+      type: string
+      description: >
+        Snake_case. The classes the build actually produces are `benign`,
+        `dos`, `ddos`, `port_scan`, `botnet` and `web_attack` — six, recorded
+        in `data/splits/MANIFEST.json`. PLAN §7.3 originally estimated seven
+        and has been corrected: the four DoS variants collapse to `dos`, the
+        three Web Attack spellings collapse to `web_attack` (`Sql Injection`
+        has 21 rows in the entire capture), and `heartbleed` is excluded at 11
+        rows. The random baseline is therefore 1/6 ≈ 16.7%.
+
+        `FilterStrip.jsx:40-45` hardcoded a different six and only `port_scan`
+        and `ddos` overlapped. FE-11 makes the filter read
+        `GET /alerts/attack-types` instead, so the options are whatever the
+        data contains. A value outside that list still renders correctly.
+
+        Rendered with `.replaceAll('_',' ')` (AlertTable.jsx:126).
+      examples: [benign, dos, ddos, port_scan, botnet, web_attack]
+
+    AlertSource:
+      type: string
+      enum: [cicids_replay, suricata_sample, live_demo]
+      description: >
+        PLAN D24. Set at the INGESTION BOUNDARY and never inferred downstream.
+
+        `cicids_replay`  — a labeled CICIDS2017 row from the replay partition.
+                           THE ONLY SOURCE THAT MAY BE SCORED BY THE EVAL.
+        `suricata_sample`— the committed Suricata EVE sample. No ground truth.
+        `live_demo`      — a real staged attack observed live by Suricata during
+                           the demo (PLAN D23, §4.4a). No ground truth.
+
+        PLAN I15 (extended): `suricata_sample` and `live_demo` rows carry no
+        label and MUST NEVER enter the eval set or the training set. A test
+        asserts every scored row is `cicids_replay`.
+
+        Routing consequence (PLAN D25): EVE-derived sources have no flow
+        features, so the LightGBM tier is SKIPPED with an explicit traced reason
+        and the alert routes straight to the LLM. The trace entry exists and
+        says why — this is not a silent bypass (PLAN I5).
+
+    Alert:
+      type: object
+      required:
+        - id
+        - timestamp
+        - source
+        - severity
+        - attack_type
+        - src_ip
+        - dest_ip
+        - dest_port
+        - protocol
+        - signature
+        - trace
+      description: >
+        The union of every field the live render path reads. Shape pinned by
+        frontend/src/data/mockAlerts.js — the de-facto schema the frontend was
+        built against. This is exactly the object pushed over the WebSocket.
+        PLAN D16: dest_ip / dest_port, never dst_ip / dst_port. The short
+        aliases (src, dst, proto, port, vector, abuse, vt, mitre) appear ONLY as
+        fallbacks in dead code (CONTRACT.md §10) and must not be emitted.
+      properties:
+        id:
+          type: string
+          pattern: '^ALT-[0-9A-F]{6}$'
+          description: >
+            Gates WebSocket acceptance (useAlertStream.js:30) and is the React
+            key. Must be unique — the client does not de-duplicate.
+        timestamp:
+          type: string
+          format: date-time
+          description: >
+            ISO-8601. Rendered as HH:MM:SS plus a relative age
+            (AlertTable.jsx:115-116) and bucketed for the right-rail velocity
+            chart (RightRail.jsx:13). PLAN §6.4: ordered, no backwards jitter.
+        source: { $ref: '#/components/schemas/AlertSource' }
+        severity: { $ref: '#/components/schemas/Severity' }
+        attack_type: { $ref: '#/components/schemas/AttackType' }
+        src_ip:
+          type: string
+          description: >
+            Also the clustering key for the Threat clusters screen
+            (WorkspacePanel.jsx:501) and a search field.
+        dest_ip: { type: string }
+        dest_port: { type: integer }
+        protocol: { type: string, examples: [TCP, UDP] }
+        signature:
+          type: string
+          description: >
+            PLAN §6.3 / I4: synthesized from flow features ONLY. The
+            ground-truth label must never appear in it, in any encoding — this
+            is the exact failure mode that put the answer in 450/450 eval
+            prompts in the prior codebase.
+        mitre_technique:
+          type: [string, 'null']
+          description: >
+            Technique ID only, e.g. T1190. Renders as "UNMAPPED" when absent
+            (AlertDetailDrawer.jsx:60). PLAN §4.1: IDs the retriever did not
+            return are dropped from model output.
+            NOTE: PLAN §3.1 asks for the technique NAME too; the live drawer
+            renders only the ID. `mitre_name` appears solely in dead code.
+        ioc_checked:
+          type: boolean
+          description: >
+            DRIVES THE ENRICH STAGE INDICATOR in both the table strip
+            (AlertTable.jsx:34) and the drawer trace
+            (AlertDetailDrawer.jsx:58). Must be true only when enrichment
+            genuinely ran.
+        ioc_reputation:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Rendered as "ABUSE {n}%" (AlertDetailDrawer.jsx:58).
+        vt_ip:
+          type: [string, 'null']
+          description: >
+            Rendered uppercased as "VT {X}" (AlertDetailDrawer.jsx:58).
+            Mock values: malicious, suspicious, clean, unknown.
+        vt_hash:
+          type: [string, 'null']
+          description: >
+            Present in the mock shape (mockAlerts.js:5) but rendered by NOTHING
+            in the live path. PLAN T11: never fabricate a hash from the
+            signature. Omit unless a real hash exists.
+        explanation:
+          type: [string, 'null']
+          description: >
+            DRIVES THE REASON STAGE INDICATOR (AlertTable.jsx:35,
+            AlertDetailDrawer.jsx:58) and fills the agent-log block. Must be
+            null when the reason stage did not produce output — a template
+            string here reads as real model output.
+        remediation:
+          type: [string, 'null']
+          description: >
+            RENDERED AS A SINGLE STRING in one paragraph
+            (AlertDetailDrawer.jsx:62). PLAN §3.1 asks for a LIST; the frozen
+            drawer cannot render one. See CONTRACT.md §6.1.
+        classify_latency_ms:
+          type: [number, 'null']
+          description: perf_counter-measured (PLAN §11). Never a hardcoded 0.0.
+        enrich_latency_ms: { type: [number, 'null'] }
+        reasoning_latency_ms:
+          type: [number, 'null']
+          description: >
+            Note the field name is `reasoning_`, not `reason_`
+            (mockAlerts.js:5, AlertDetailDrawer.jsx:58).
+        trace:
+          type: array
+          minItems: 1
+          description: >
+            REQUIRED. SANCTIONED CHANGE FE-7 makes AlertDetailDrawer.jsx read
+            this array instead of its three hardcoded provider strings
+            (AlertDetailDrawer.jsx:6) and instead of inferring stage status from
+            field presence (AlertDetailDrawer.jsx:58).
+
+            Present on the WebSocket message, on GET /alerts, and in the export.
+            PLAN I1: EXACTLY ONE ENTRY PER NODE, ALWAYS — including on an
+            unhandled raise. The terminal `finalize` node backfills a `skipped`
+            entry with a human-readable `note` for every node that never ran, so
+            the drawer can distinguish skipped from failed from never-ran, which
+            it currently cannot.
+
+            Node order is pipeline order: classify, enrich, retrieve, reason,
+            recommend, rules, finalize. FE-7 renders the array in the order
+            received; do not sort client-side.
+
+            BACKEND OBLIGATION — STRIP CONSISTENCY. FE-7 covers the DRAWER
+            only. The alert table's three-square strip keeps inferring stage
+            completion from field presence:
+              classify -> Boolean(severity)      AlertTable.jsx:33
+              enrich   -> Boolean(ioc_checked)   AlertTable.jsx:34
+              reason   -> Boolean(explanation)   AlertTable.jsx:35
+            Those three fields MUST STAY CONSISTENT WITH trace[].status. A node
+            whose trace entry is `failed` or `skipped` must NOT leave its
+            corresponding field populated, or the strip lights up green for a
+            stage that did not run — the drawer would then tell the truth while
+            the table on the same screen contradicts it.
+            Concretely: `explanation` is null when the reason node did not
+            produce output; `ioc_checked` is false when enrich was skipped or
+            failed. Assert this pairing in a test.
+
+            The three `*_latency_ms` scalars stay on the alert for the table
+            strip and for backward compatibility, and must AGREE with the
+            corresponding `duration_ms` values here.
+          items: { $ref: '#/components/schemas/TraceNode' }
+        confidence:
+          type: [number, 'null']
+          description: >
+            Calibrated probability from the fast tier (PLAN §4.3). Not rendered
+            by the live drawer; PLAN §3.1 asks for it. Read only by dead code
+            (dash/AlertDrawer.jsx:91).
+        degraded:
+          type: [boolean, 'null']
+          description: >
+            PLAN §4.1: offline/degraded mode is declared and labelled, never
+            silent. Not rendered by the frozen frontend.
+        tags:
+          type: array
+          items: { type: string }
+          description: >
+            PHASE 4. Written by the `add_tag` rule action, which PLAN §4.1
+            requires to be wired live and to actually mutate the alert (T14).
+            Not rendered by the frozen frontend — it is emitted because the
+            action is real and the field it writes has to be visible to
+            anything that reads an alert. Empty on an alert no rule tagged.
+        rule_trace:
+          type: array
+          description: >
+            PHASE 4. The per-condition rule fire trace, as evaluated AT TRIAGE
+            TIME. PLAN §4.1 asks for it "surfaced in the alert payload"; the
+            same array is served by GET /rules/alerts/{alert_id}/explain-rules
+            from the same stored column, so the drawer's separate fetch and the
+            streamed alert cannot disagree.
+
+            DESPITE THE ENDPOINT'S KEY NAME, this contains EVERY rule
+            evaluated, fired or not — the drawer renders non-firing rules with
+            a "no match" chip and the full per-condition breakdown. Empty on an
+            alert triaged while no rule was configured, which is the honest
+            value rather than an absent key.
+          items:
+            type: object
+            required: [rule_id, rule_name, fired, conditions]
+            properties:
+              rule_id: { type: [integer, string] }
+              rule_name: { type: string }
+              fired: { type: boolean }
+              conditions:
+                type: array
+                items:
+                  type: object
+                  required: [field, operator, expected, actual, result]
+                  properties:
+                    field: { type: string }
+                    operator: { type: string }
+                    expected: {}
+                    actual: {}
+                    result: { type: boolean }
+                    note:
+                      type: string
+                      description: >
+                        Present when the condition could not be decided
+                        normally — a `contains` match that hit its timeout, or
+                        a value truncated to the subject-length bound. A
+                        condition that timed out is reported FALSE and says so,
+                        which is a different fact from "did not match".
+              actions_applied:
+                type: array
+                description: What each firing rule actually changed.
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum: [set_severity, add_tag, set_attack_type]
+                    from: {}
+                    to: {}
+
+    TraceNode:
+      type: object
+      required: [node, status]
+      description: >
+        PLAN §4.1. Exactly one entry per node per invocation, including on an
+        unhandled raise; the terminal finalize node backfills a `skipped` entry
+        with a human-readable reason for every node that never ran.
+        Nodes: classify, enrich, retrieve, reason, recommend, rules, finalize.
+      properties:
+        node: { type: string }
+        status: { type: string, enum: [ok, skipped, failed] }
+        provider:
+          type: [string, 'null']
+          description: >
+            PLAN I5/I16: every prediction is labelled with the artifact that
+            produced it — e.g. "lightgbm", "groq", "gemini", "offline".
+        model: { type: [string, 'null'] }
+        model_version: { type: [string, 'null'] }
+        duration_ms: { type: [number, 'null'] }
+        tokens:
+          type: [object, 'null']
+          description: Read from real SDK usage fields (PLAN §11).
+          properties:
+            prompt: { type: integer }
+            completion: { type: integer }
+        note:
+          type: [string, 'null']
+          description: Skip reason or failure reason, human-readable.
+        key_id:
+          type: [string, 'null']
+          description: >
+            PLAN D26/I16. Which provider key served the call, BY LABEL ONLY —
+            "groq-reserved", "gemini-dev". Raw key material never enters a
+            trace, a log, a payload or an error message. Null on any node that
+            did not call a keyed provider.
+
+    # ── health / stats ─────────────────────────────────────────────────
+
+    HealthPayload:
+      type: object
+      required: [services]
+      properties:
+        services:
+          type: array
+          items: { $ref: '#/components/schemas/ServiceHealth' }
+          description: >
+            Empty array renders "No services configured"
+            (WorkspacePanel.jsx:108-109).
+
+    ServiceHealth:
+      type: object
+      required: [name, status]
+      description: >
+        WorkspacePanel.jsx:84-104. PLAN §3.1: live probe of Groq, Gemini,
+        AbuseIPDB and VirusTotal.
+      properties:
+        name:
+          type: string
+          description: The React key — must be unique across the array.
+        status:
+          type: string
+          enum: [ok, rate_limited, error, unknown]
+          description: >
+            Branched three ways by the UI: 'ok' -> green, 'rate_limited' ->
+            amber, anything else -> red (WorkspacePanel.jsx:85-86), so
+            'unknown' renders red. 'unknown' means never probed — served by the
+            cheap /health before any deep probe has run. Never report 'ok' for
+            a dependency that has not actually been checked.
+        latency_ms:
+          type: [number, 'null']
+          description: >
+            Milliseconds, from the LAST REAL PROBE — a cached measurement, never
+            synthesized, and never a hardcoded 0.0 (PLAN §11, I2).
+            Rendered as "{n}ms". When null the cell shows status.toUpperCase()
+            instead (WorkspacePanel.jsx:103), which is the correct display for a
+            dependency that has not been probed yet.
+        checked_at:
+          type: [string, 'null']
+          format: date-time
+          description: >
+            When the cached measurement was taken. Not rendered by the frozen
+            frontend, but it is what makes the cheap /health honest — it says
+            how stale the number is rather than implying it is live.
+        message:
+          type: [string, 'null']
+          description: >
+            Sub-label; falls back to "external API" when falsy
+            (WorkspacePanel.jsx:99). PLAN §3.1 wants the raw provider error text
+            here.
+
+    StatsPayload:
+      type: object
+      required: [timeline, alert_velocity]
+      properties:
+        timeline:
+          type: array
+          items: { $ref: '#/components/schemas/TimelineBucket' }
+          description: >
+            Only the LAST 20 entries render (WorkspacePanel.jsx:195). Empty
+            renders "No timeline data yet."
+        alert_velocity:
+          type: integer
+          description: >
+            DECIDED — the MEAN over the full 30-minute window, rounded to the
+            nearest integer. NOT the most recent bucket: a sparse trailing
+            bucket reads 0 and looks broken under a panel explicitly labelled
+            "30 minute window" (WorkspacePanel.jsx:183). The number must match
+            the label it renders under.
+            Rendered verbatim as "{n} alerts/min" (WorkspacePanel.jsx:186).
+
+    TimelineBucket:
+      type: object
+      required: [time, count]
+      properties:
+        time:
+          type: string
+          format: date-time
+          description: >
+            ISO-8601 REQUIRED — sliced as time.slice(11,16) to produce HH:MM
+            (WorkspacePanel.jsx:210-211), so `T` must sit at index 10. Also the
+            React key, so values must be unique. PLAN D7: real 30-minute
+            buckets.
+        count: { type: integer }
+
+    # ── audit ──────────────────────────────────────────────────────────
+
+    AuditPage:
+      type: object
+      required: [logs, total]
+      properties:
+        logs:
+          type: array
+          items: { $ref: '#/components/schemas/AuditLog' }
+        total:
+          type: integer
+          description: >
+            DECIDED — the POST-FILTER count. Pagination is
+            Math.ceil(total / 25) (WorkspacePanel.jsx:266), so a pre-filter
+            count produces a wrong page count.
+
+    AuditLog:
+      type: object
+      required: [id, action, resource_type, created_at]
+      description: >
+        WorkspacePanel.jsx:303-323. PLAN §4.1: every state-changing operation,
+        INCLUDING tenant ops, job triggers, exports, notification-preference
+        changes, and failed logins.
+      properties:
+        id: { type: integer, description: React key. }
+        action: { type: string, examples: [rule.create, auth.login_failed] }
+        resource_type:
+          type: string
+          description: >
+            The UI filter offers a fixed list — rule, playbook, user, alert
+            (WorkspacePanel.jsx:288-291). Other values render but are not
+            filterable from the UI.
+        resource_id:
+          type: [string, integer, 'null']
+          description: Rendered as "#{id}" when truthy (WorkspacePanel.jsx:308).
+        actor_id:
+          type: [integer, 'null']
+          description: >
+            Not rendered by the frozen frontend; PLAN §3.1 lists an actor
+            column.
+        created_at:
+          type: string
+          format: date-time
+          description: >
+            ISO-8601 — rendered as created_at.replace('T',' ').slice(0,19)
+            (WorkspacePanel.jsx:311).
+        details:
+          description: >
+            Any JSON value; rendered with JSON.stringify(details, null, 2). A
+            falsy value hides the expander (WorkspacePanel.jsx:312).
+            PLAN §9: no secrets, no tokens, no full request bodies.
+
+    # ── eval ───────────────────────────────────────────────────────────
+
+    EvalPayload:
+      type: object
+      required:
+        - sample_size
+        - severity_accuracy
+        - attack_type_accuracy
+        - avg_latency_ms
+        - high_severity_precision
+        - high_severity_recall
+        - high_severity_f1
+        - confusion_matrix
+        - attack_type_breakdown
+        - rows
+        - misclassified_count
+      description: >
+        WorkspacePanel.jsx:399-486. Every required field below is read by the
+        render path.
+
+        WHICH NUMBER FILLS THE SIX TILES — DECIDED. The six scalars
+        (severity_accuracy, attack_type_accuracy, avg_latency_ms,
+        high_severity_precision/recall/f1) are the AS-SHIPPED SYSTEM numbers:
+        real routing, escalation applied, exactly as production runs it. That is
+        PLAN E15's headline, and it is the only figure that describes what a
+        user actually gets.
+        The per-tier blocks (LightGBM alone, LLM alone) live in `tiers` on this
+        payload and in the README ONLY — they explain the headline, they do not
+        replace it, and the frozen screen has no slot for them
+        (CONTRACT.md §8.5).
+      properties:
+        sample_size:
+          type: integer
+          description: Rendered as "{n} labeled alerts" (WorkspacePanel.jsx:411).
+        severity_accuracy: { type: number, minimum: 0, maximum: 1 }
+        attack_type_accuracy: { type: number, minimum: 0, maximum: 1 }
+        avg_latency_ms:
+          type: number
+          description: >
+            PLAN §11: aggregates EXCLUDE non-measurements rather than averaging
+            in literal zeros.
+        high_severity_precision: { type: number, minimum: 0, maximum: 1 }
+        high_severity_recall: { type: number, minimum: 0, maximum: 1 }
+        high_severity_f1: { type: number, minimum: 0, maximum: 1 }
+        confusion_matrix: { $ref: '#/components/schemas/ConfusionMatrix' }
+        attack_type_breakdown:
+          type: object
+          description: >
+            Keyed by attack type; rendered as
+            "{correct}/{true_count} ({pct}%)" (WorkspacePanel.jsx:471).
+          additionalProperties:
+            type: object
+            required: [correct, true_count, accuracy]
+            properties:
+              correct: { type: integer }
+              true_count: { type: integer }
+              accuracy: { type: number, minimum: 0, maximum: 1 }
+        rows:
+          type: array
+          description: >
+            The misclassified list is recomputed CLIENT-SIDE from this array as
+            `pred_severity !== true_severity || pred_attack_type !==
+            true_attack_type` (WorkspacePanel.jsx:402), and only the first 20
+            render. If misclassified_count uses a different definition the
+            header and the list disagree on screen.
+          items:
+            type: object
+            required:
+              - signature
+              - true_severity
+              - pred_severity
+              - true_attack_type
+              - pred_attack_type
+            properties:
+              signature:
+                type: string
+                description: >
+                  Truncated to 60 chars in the UI
+                  (WorkspacePanel.jsx:484). PLAN I4: must not contain the label.
+              true_severity: { $ref: '#/components/schemas/ScoredSeverity' }
+              pred_severity:
+                $ref: '#/components/schemas/ScoredSeverity'
+                description: >
+                  A row that failed classification is NOT emitted with
+                  pred_severity "unknown" — it is excluded from `rows` and
+                  counted in `unscored_count` instead (PLAN I13).
+              true_attack_type: { $ref: '#/components/schemas/AttackType' }
+              pred_attack_type: { $ref: '#/components/schemas/AttackType' }
+        misclassified_count: { type: integer }
+        unscored_count:
+          type: integer
+          description: >
+            Rows whose classification FAILED or was not attempted. PLAN I13 —
+            these stay in the denominator (`sample_size`) and are never dropped
+            from the metrics, but they are not a fifth confusion-matrix class
+            and do not appear in `rows`. Accuracy denominators are
+            `sample_size`, so a run with unscored rows scores below 1.0 by
+            construction, which is the honest result.
+        baselines:
+          type: object
+          description: >
+            PLAN E12 — an accuracy figure without its baselines is
+            uninterpretable in either direction. Not rendered by the frozen
+            screen.
+          properties:
+            random: { type: number }
+            majority_class: { type: number }
+        tiers:
+          type: object
+          description: >
+            PLAN E14/E15 — each tier scored independently on the same rows.
+            `system` duplicates what the six top-level scalars already carry;
+            `lightgbm` and `llm` are the explanatory breakdown. API and README
+            only — not rendered by the frozen screen.
+          properties:
+            lightgbm: { $ref: '#/components/schemas/TierMetrics' }
+            llm: { $ref: '#/components/schemas/TierMetrics' }
+            system: { $ref: '#/components/schemas/TierMetrics' }
+        escalation:
+          type: object
+          description: >
+            PLAN E17 — what fraction the router sent to the LLM, and the
+            accuracy on that subset versus the subset the model kept. A badly
+            tuned threshold shows up here rather than hiding in the routing.
+          properties:
+            rate: { type: number, minimum: 0, maximum: 1 }
+            accuracy_escalated: { type: number }
+            accuracy_kept: { type: number }
+        run_notice:
+          type: string
+          description: >
+            PLAN E5/E9 — seed, residual non-determinism, and a WARNING when
+            offline/deterministic mode produced the scored output.
+        guards:
+          type: array
+          description: >
+            PLAN §7.3 — every band the run evaluated, with its status and the
+            evidence. Served rather than swallowed: a trip means the numbers
+            need adjudicating, and a 500 would hide what is needed to do it.
+          items: { $ref: '#/components/schemas/GuardFinding' }
+        guards_tripped:
+          type: array
+          items: { type: string }
+        superseded_thresholds:
+          type: object
+          description: >
+            PLAN §7.3a / §7.3d — a guard band that CHANGED, carrying its old
+            value beside the new one with the date and the evidence that moved
+            it. A threshold revised without a record is indistinguishable from
+            a threshold tuned to make a number pass, so the record travels with
+            every payload. Keyed by guard name; each entry is
+            {was, now, superseded_on, why, ...}. Today: `llm_floor`, was 0.35,
+            now 0.18.
+          additionalProperties:
+            type: object
+        partition:
+          type: object
+          description: >
+            PLAN E1 / §7.3b — which rows were scored, the seed that chose them,
+            and the exact eval-to-train FEATURE-VECTOR overlap measured on those
+            rows. Id-level disjointness is necessary and not sufficient.
+        usage:
+          type: object
+          description: >
+            PLAN §11 — real SDK token counts, a success rate that can see a
+            failed call, and `cost_usd` ONLY when a priced model was called. A
+            model with no verified price is listed in `unpriced_models`; there
+            is no 0.0 default that reads as free.
+        duration_ms: { type: number }
+        offline: { type: boolean }
+        model_version: { type: [string, 'null'] }
+        generated_at: { type: string, format: date-time }
+        cached:
+          type: boolean
+          description: True when served from cache rather than a fresh run.
+
+    ConfusionMatrix:
+      type: object
+      required: [labels, matrix]
+      description: >
+        4x4 — DECIDED. Labels are exactly, and in this order:
+        critical, high, medium, low.
+
+        `unknown` IS NEVER A ROW OR A COLUMN. It is a failure state — an alert
+        whose classification failed or was not attempted — and is never a
+        ground-truth label the model is scored against. PLAN I13 still holds:
+        such an alert stays in the denominator and is counted as a failure, but
+        it does not become a fifth class that the model could be "right" about.
+        Report those separately via `unscored_count` on EvalPayload.
+
+        SANCTIONED CHANGE FE-8 makes the grid data-driven off `labels` instead
+        of the current hardcoded `grid-cols-4` (WorkspacePanel.jsx:444) with its
+        3-label fallback (WorkspacePanel.jsx:400) — today the column count and
+        the content disagree. After FE-8 the grid is
+        `grid-template-columns: repeat(labels.length + 1, …)`, so this schema
+        pins 4 only because that is the decided class list, not because the UI
+        cannot render another width.
+
+        This resolves the three-way disagreement in CONTRACT.md §8.4: PLAN §3.1
+        ("3x3") and PLAN §3.2 (5 severities) are both superseded here; PLAN
+        §7.3's "Severity accuracy (4 classes)" is the one that stands.
+      properties:
+        labels:
+          type: array
+          items: { $ref: '#/components/schemas/ScoredSeverity' }
+          minItems: 4
+          maxItems: 4
+          description: >
+            Rendered uppercased as both row and column headers. Emit in
+            descending severity order — critical, high, medium, low — so the
+            diagonal reads top-left to bottom-right in severity order.
+        matrix:
+          type: array
+          description: >
+            Rows are ACTUAL, columns are PREDICTED, both indexed by `labels`.
+            row === col is the diagonal (WorkspacePanel.jsx:453).
+          items:
+            type: array
+            items: { type: integer }
+            minItems: 4
+            maxItems: 4
+          minItems: 4
+          maxItems: 4
+
+    TierMetrics:
+      type: object
+      description: >
+        PLAN E13 — three genuinely different tasks, reported separately.
+        `unscored_count` is rows the tier produced no verdict for; they stay in
+        `sample_size` and drag the accuracy down (PLAN E7/I13). `failures` is
+        keyed by the category that stopped each one, so an I18 empty-content
+        failure is distinguishable from a timeout and from a real answer.
+        Each accuracy carries its own baselines (PLAN E12); the attack-type
+        block additionally carries the no-training 1-NN figure (§7.3), which is
+        null on a tier for which it was not computed and never a placeholder.
+        `avg_latency_ms` is null when nothing was measured — PLAN §11 excludes
+        non-measurements rather than averaging literal zeros in.
+      properties:
+        tier: { type: string }
+        sample_size: { type: integer }
+        unscored_count: { type: integer }
+        binary_detection_accuracy: { type: number }
+        severity_accuracy: { type: number }
+        attack_type_accuracy: { type: number }
+        avg_latency_ms: { type: [number, 'null'] }
+        binary_detection: { type: object }
+        severity: { type: object }
+        attack_type: { type: object }
+        high_severity: { type: object }
+        failures:
+          type: object
+          additionalProperties: { type: integer }
+
+    GuardFinding:
+      type: object
+      required: [guard, status, detail]
+      description: >
+        PLAN §7.3. `tripped` means the number is not to be quoted until the
+        finding is adjudicated. `inconclusive` means the check RAN and the
+        sample cannot answer it — a 0.995 accuracy ceiling is not expressible on
+        80 rows, whose resolution is 1/80 = 0.0125 — and the same check is
+        decisive on the full 1,800-row partition, which is why that partition is
+        also scored. `warning` is the suspicion band: read ten prompts end to
+        end before accepting the number.
+      properties:
+        guard: { type: string }
+        status: { type: string, enum: [tripped, inconclusive, warning] }
+        detail: { type: string }
+
+    # ── rules ──────────────────────────────────────────────────────────
+
+    Rule:
+      type: object
+      required: [id, name, match_count, is_enabled]
+      description: WorkspacePanel.jsx:757-766.
+      properties:
+        id: { type: integer, description: React key; used in the DELETE path. }
+        name: { type: string }
+        description:
+          type: [string, 'null']
+          description: Falls back to "No description" (WorkspacePanel.jsx:761).
+        match_count:
+          type: integer
+          description: >
+            Rendered as "{n} matches" (WorkspacePanel.jsx:762). Must be a real
+            count of alerts this rule fired on — PLAN I2 forbids a hardcoded
+            metric.
+        is_enabled:
+          type: boolean
+          description: >
+            Rendered as a status dot (WorkspacePanel.jsx:765). NO CONTROL IS
+            BOUND TO IT — the frozen UI cannot toggle a rule.
+        conditions: { $ref: '#/components/schemas/RuleConditionGroup' }
+        actions:
+          type: array
+          items: { $ref: '#/components/schemas/RuleAction' }
+        created_at: { type: string, format: date-time }
+
+    RuleInput:
+      type: object
+      required: [name, conditions, actions]
+      description: >
+        Exact body from WorkspacePanel.jsx:663 and :683. Note the nested
+        `conditions.conditions`.
+      properties:
+        name: { type: string, minLength: 1 }
+        description:
+          type: string
+          description: Sent as "" when the optional field is left blank.
+        conditions: { $ref: '#/components/schemas/RuleConditionGroup' }
+        actions:
+          type: array
+          items: { $ref: '#/components/schemas/RuleAction' }
+
+    RuleConditionGroup:
+      type: object
+      required: [logic, conditions]
+      properties:
+        logic:
+          type: string
+          enum: [AND, OR]
+          description: >
+            The UI only ever sends the literal "AND"
+            (WorkspacePanel.jsx:663) and offers no control to change it.
+        conditions:
+          type: array
+          description: >
+            The UI only ever sends ONE element, but the shape is a list and the
+            backend must accept N.
+          items: { $ref: '#/components/schemas/RuleCondition' }
+
+    RuleCondition:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [severity, attack_type, src_ip, dest_port]
+          description: The four the UI offers (WorkspacePanel.jsx:727-730).
+        operator:
+          type: string
+          enum: [equals, contains, not_equals, greater_than]
+          description: >
+            The four the UI offers (WorkspacePanel.jsx:733-736). PLAN §9:
+            `contains` against user-supplied input must be bounded against
+            ReDoS with a complexity limit and a match timeout.
+        value:
+          type: string
+          description: >
+            ALWAYS A STRING from the UI — a free-text input, even for
+            dest_port and greater_than (WorkspacePanel.jsx:739). The backend
+            must coerce.
+
+    RuleAction:
+      type: object
+      required: [type, value]
+      description: >
+        PLAN §4.1 requires set_severity, add_tag and set_attack_type to be wired
+        live and to actually mutate the alert (PLAN T14). The frozen UI hardcodes
+        `{type:"set_severity", value:"high"}` and offers no editor, so only the
+        first can ever be created from this frontend.
+        PLAN §4.1: rules run LAST and WIN — a human wrote them, so they outrank
+        the model, the LLM and the intel escalation.
+      properties:
+        type:
+          type: string
+          enum: [set_severity, add_tag, set_attack_type]
+        value: { type: string }
+
+    RuleTrace:
+      type: object
+      required: [matched_rules]
+      description: >
+        AlertDetailDrawer.jsx:59. The whole body becomes component state.
+        `matched_rules` must contain EVERY rule evaluated, not only those that
+        fired — the UI renders non-firing rules with a "no match" chip.
+      properties:
+        matched_rules:
+          type: array
+          items:
+            type: object
+            required: [rule_id, rule_name, fired, conditions]
+            properties:
+              rule_id: { type: integer, description: React key. }
+              rule_name: { type: string }
+              fired: { type: boolean }
+              conditions:
+                type: array
+                items:
+                  type: object
+                  required: [field, operator, expected, actual, result]
+                  properties:
+                    field: { type: string }
+                    operator: { type: string }
+                    expected:
+                      description: >
+                        Any JSON scalar — rendered through String()
+                        (AlertDetailDrawer.jsx:59).
+                    actual:
+                      description: Any JSON scalar — rendered through String().
+                    result: { type: boolean }
+
+    # ── playbooks ──────────────────────────────────────────────────────
+
+    Playbook:
+      type: object
+      required: [id, name, steps, execution_count, is_enabled]
+      description: WorkspacePanel.jsx:969-1001.
+      properties:
+        id: { type: integer, description: React key; used in paths. }
+        name: { type: string }
+        description:
+          type: [string, 'null']
+          description: Falls back to "No description" (WorkspacePanel.jsx:974).
+        alert_type:
+          type: [string, 'null']
+          description: >
+            FREE TEXT, not an enum — the form field is a plain input
+            (WorkspacePanel.jsx:908). Rendered as "type:{v}" when truthy.
+        severity_threshold:
+          type: [string, 'null']
+          enum: [low, medium, high, critical, null]
+          description: >
+            Rendered as "min:{v}" (WorkspacePanel.jsx:979).
+            DECIDED (PLAN D27) — the total order is
+            low < medium < high < critical.
+            `unknown` IS OUTSIDE THE ORDER AND FAILS CLOSED: it satisfies no
+            threshold, ever. An alert whose classification failed never
+            auto-triggers a playbook or a notification, because treating a
+            pipeline failure as "at least high" would fire real actions on our
+            own bugs.
+            Sent as "" for "Any severity".
+        steps:
+          type: array
+          items: { $ref: '#/components/schemas/PlaybookStep' }
+        execution_count:
+          type: integer
+          description: >
+            Rendered as "{n} executions" (WorkspacePanel.jsx:976). Real count —
+            PLAN I2.
+        is_enabled:
+          type: boolean
+          description: >
+            Status dot only (WorkspacePanel.jsx:983). No control is bound to it.
+
+    PlaybookInput:
+      type: object
+      required: [name, steps]
+      description: WorkspacePanel.jsx:781 and :832. Used by both POST and PUT.
+      properties:
+        name: { type: string, minLength: 1 }
+        description: { type: string }
+        alert_type: { type: string, description: 'Free text; "" is legal.' }
+        severity_threshold:
+          type: string
+          enum: ['', low, medium, high, critical]
+          description: '"" means any severity (WorkspacePanel.jsx:910).'
+        steps:
+          type: array
+          description: >
+            Steps with an empty title are stripped client-side before submit
+            (WorkspacePanel.jsx:832), so an empty array is a legal body.
+          items: { $ref: '#/components/schemas/PlaybookStep' }
+
+    PlaybookStep:
+      type: object
+      required: [type, title]
+      properties:
+        type:
+          type: string
+          enum: [manual, auto, approval]
+          description: >
+            WorkspacePanel.jsx:921-923. PLAN §4.1: `auto` and `approval` must be
+            branched on for real, or the type field removed — no bookkeeping
+            that pretends.
+        title:
+          type: string
+          description: >
+            Canonical. The render path falls back to `label` then "Untitled"
+            (WorkspacePanel.jsx:951, :992) — `label` is a legacy alias; emit
+            `title`.
+        description: { type: [string, 'null'] }
+
+    Execution:
+      type: object
+      required: [id, status, steps, completed_steps, current_step]
+      description: >
+        WorkspacePanel.jsx:938-951. The whole body becomes component state.
+      properties:
+        id: { type: integer }
+        status:
+          $ref: '#/components/schemas/ExecutionStatus'
+          description: >
+            Rendered uppercased (WorkspacePanel.jsx:938).
+            The FROZEN poller stops only on the literal "completed"
+            (WorkspacePanel.jsx:799), so `failed` and `cancelled` would poll
+            forever at 3s. SANCTIONED CHANGE FE-10 stops the poller on ANY
+            terminal status. Executions legitimately reach `failed` and
+            `cancelled` and these are NOT collapsed into `completed` — that
+            would be bookkeeping that pretends.
+        alert_id:
+          type: [string, 'null']
+          description: 'Rendered as "Alert: {id}" when truthy (WorkspacePanel.jsx:941).'
+        steps:
+          type: array
+          items: { $ref: '#/components/schemas/PlaybookStep' }
+        completed_steps:
+          type: array
+          items: { type: integer }
+          description: >
+            ARRAY OF ZERO-BASED INDICES — the UI calls .includes(i)
+            (WorkspacePanel.jsx:944). Not step ids, not titles.
+        current_step:
+          type: integer
+          description: >
+            Zero-based index, compared with === (WorkspacePanel.jsx:945). The
+            "Complete" button renders only on the current, not-yet-done step.
+
+    ExecutionStatus:
+      type: string
+      enum: [pending, in_progress, completed, failed, cancelled]
+      description: >
+        Terminal statuses are `completed`, `failed` and `cancelled`. FE-10 stops
+        the 3-second poller on any of the three; the frozen frontend stops only
+        on `completed` (WorkspacePanel.jsx:799).
+        `failed` and `cancelled` are real outcomes and are never reported as
+        `completed` — a playbook that did not finish must not claim it did.
+
+    # ── notifications ──────────────────────────────────────────────────
+
+    NotificationChannel:
+      type: string
+      enum: [email, slack]
+      description: >
+        WorkspacePanel.jsx:1062-1063. PLAN §17 cuts Slack — "scaffolded but not
+        sending" — while the UI offers it as an equal choice with no disabled
+        state. Either reject `slack` with a `detail` the existing error path
+        surfaces, or accept and label it. CONTRACT.md §8.6.
+
+    NotificationEventType:
+      type: string
+      enum: [alert.high_severity, rule.matched, export.ready]
+      description: WorkspacePanel.jsx:1066-1068.
+
+    NotificationLogEntry:
+      type: object
+      description: >
+        One dispatch DECISION. PLAN §8.3. `outcome` is `sent`, `suppressed` or
+        `failed`; `reason` is never null on the latter two, because a row that
+        cannot say why is not evidence of anything. `rollup_count` is how many
+        alerts the debounce window covered. `alert_id` is the alert that OPENED
+        the window and carries no foreign key — the log outlives the alerts
+        table's retention.
+      required:
+        [id, channel, event_type, outcome, rollup_count, attempts, created_at]
+      properties:
+        id: { type: integer }
+        channel: { $ref: '#/components/schemas/NotificationChannel' }
+        event_type: { $ref: '#/components/schemas/NotificationEventType' }
+        outcome:
+          type: string
+          enum: [sent, suppressed, failed]
+        reason:
+          type: string
+          nullable: true
+        alert_id:
+          type: string
+          nullable: true
+        severity:
+          type: string
+          nullable: true
+        rollup_count: { type: integer }
+        recipient:
+          type: string
+          nullable: true
+        attempts: { type: integer }
+        created_at: { type: string, format: date-time }
+
+    NotificationPreference:
+      type: object
+      required: [id, channel, event_type, is_enabled]
+      description: >
+        WorkspacePanel.jsx:1080-1094. Unique on (user, channel, event_type) —
+        the toggle re-POSTs the same pair with is_enabled flipped, so POST must
+        upsert on that key or every toggle inserts a duplicate.
+      properties:
+        id: { type: integer, description: React key; used in the DELETE path. }
+        channel:
+          $ref: '#/components/schemas/NotificationChannel'
+          description: >
+            Rendered with .toUpperCase() and NO NULL GUARD
+            (WorkspacePanel.jsx:1085) — never emit null.
+        event_type: { $ref: '#/components/schemas/NotificationEventType' }
+        is_enabled: { type: boolean }
+
+    # ── websocket ──────────────────────────────────────────────────────
+
+    # ── phase 4: correlation, right rail, jobs ─────────────────────────
+
+    ClusterPage:
+      type: object
+      required: [clusters, min_alerts, window_minutes]
+      properties:
+        clusters:
+          type: array
+          items: { $ref: '#/components/schemas/AlertCluster' }
+        min_alerts:
+          type: integer
+          description: The floor actually applied to this response.
+        window_minutes: { type: integer }
+        computed_at:
+          type: [string, 'null']
+          format: date-time
+          description: >
+            When the correlation job last wrote these rows. Null means the job
+            has not run yet, which is a real state and is reported rather than
+            hidden behind an empty list.
+
+    AlertCluster:
+      type: object
+      required:
+        - src_ip
+        - alert_count
+        - dominant_attack_type
+        - attack_types
+        - max_severity
+      properties:
+        src_ip: { type: string }
+        alert_count:
+          type: integer
+          description: Real count over the window — PLAN I2.
+        dominant_attack_type:
+          type: string
+          description: >
+            The most frequent type for this source. Ties break on the
+            alphabetically first, so the answer is stable across refreshes — a
+            dominant type that flips between equal counts reads as the data
+            changing when it has not.
+        attack_types:
+          type: array
+          items: { type: string }
+        max_severity: { $ref: '#/components/schemas/Severity' }
+        first_seen: { type: string, format: date-time }
+        last_seen: { type: string, format: date-time }
+        window_minutes: { type: integer }
+        computed_at: { type: string, format: date-time }
+
+    RailPayload:
+      type: object
+      required:
+        - signal_velocity
+        - threat_forecast
+        - attack_surface
+        - pipeline_activity
+      properties:
+        signal_velocity: { $ref: '#/components/schemas/SignalVelocity' }
+        threat_forecast: { $ref: '#/components/schemas/ThreatForecast' }
+        attack_surface: { $ref: '#/components/schemas/AttackSurface' }
+        pipeline_activity: { $ref: '#/components/schemas/PipelineActivity' }
+
+    SignalVelocity:
+      type: object
+      required: [samples, sample_count, now_per_min, peak_per_min, window_minutes]
+      description: >
+        A SAMPLED series, not a re-bucketing of alert timestamps. The scheduler
+        records one observation of the live rate per interval; each point is a
+        rate that was measured at an instant, which is what PLAN §3.1 means by
+        "real samples". Re-bucketing stored rows would give counts per bucket,
+        a different quantity, and would make the panel's history depend on
+        nothing having been deleted.
+      properties:
+        samples:
+          type: array
+          items:
+            type: object
+            required: [at, alerts_per_minute]
+            properties:
+              at: { type: string, format: date-time }
+              alerts_per_minute: { type: number }
+        sample_count:
+          type: integer
+          description: >
+            Zero means no sample has been recorded yet. The payload then
+            carries a live measurement and says the series is empty, rather
+            than drawing a flat line that looks like data.
+        now_per_min: { type: number }
+        peak_per_min: { type: number }
+        window_minutes:
+          type: number
+          description: >
+            The REAL span the samples cover, which is smaller than the
+            configured window until the series has filled, and 0 when no sample
+            exists. Replaces the hardcoded `window 60m` (RightRail.jsx:115).
+        configured_window_minutes: { type: integer }
+        sample_interval_seconds: { type: integer }
+        note:
+          type: [string, 'null']
+          description: >
+            Both the empty and the populated branch emit EVERY key here; `note`
+            is null rather than absent when there is nothing to say. A key that
+            vanishes once the data arrives is a key a consumer cannot rely on,
+            and it would read as undefined exactly when the panel finally has
+            something to draw.
+
+    ThreatForecast:
+      type: object
+      required: [change_pct, current, previous, window_minutes]
+      description: 'PLAN D8 — (current / previous - 1) * 100 over two adjacent windows.'
+      properties:
+        change_pct:
+          type: [number, 'null']
+          description: >
+            NULL when the previous window held no alerts. There is no honest
+            percentage change from zero, and inventing one is exactly how the
+            hardcoded `+18.4%` (RightRail.jsx:39) came to exist.
+        current: { type: integer }
+        previous: { type: integer }
+        window_minutes: { type: integer }
+        note: { type: [string, 'null'] }
+
+    AttackSurface:
+      type: object
+      required: [origins, paths, hot, nodes, window_minutes]
+      properties:
+        origins:
+          type: integer
+          description: Distinct source IPs. Replaces the literal `08 origins`.
+        paths:
+          type: integer
+          description: >
+            Distinct source -> destination:port triples. Replaces the literal
+            `08 paths`, which did not change with the node count.
+        hot:
+          type: integer
+          description: Alerts at critical or high. Replaces the literal `3 hot`.
+        dominant_subnet:
+          type: [string, 'null']
+          description: >
+            The most frequently targeted destination /16, MEASURED. Replaces
+            the invented `10.24.0.0/16` (RightRail.jsx:230). Null when no alert
+            in the window carries an IPv4 destination.
+        nodes:
+          type: array
+          items:
+            type: object
+            required: [src_ip, attack_type, severity, alert_count]
+            properties:
+              src_ip: { type: string }
+              attack_type: { type: string }
+              severity: { $ref: '#/components/schemas/Severity' }
+              alert_count: { type: integer }
+        window_minutes: { type: integer }
+
+    PipelineActivity:
+      type: object
+      required: [nodes, sampled_alerts]
+      description: >
+        PLAN D9 / FE-4. Names come from the graph's own NodeName enum, so they
+        cannot drift from the pipeline, and there are SEVEN because the pipeline
+        has seven nodes — the frozen panel renders four and the other three are
+        available rather than hidden.
+      properties:
+        sampled_alerts:
+          type: integer
+          description: How many recent alerts the shares below were measured over.
+        nodes:
+          type: array
+          items:
+            type: object
+            required: [name, state, load, ran, ok, failed, skipped]
+            properties:
+              name:
+                type: string
+                enum: [classify, enrich, retrieve, reason, recommend, rules, finalize]
+              state: { type: string, enum: [active, idle] }
+              load:
+                type: number
+                description: >
+                  The share of sampled alerts on which this node DID WORK — it
+                  ran and was not skipped. A real utilization for a per-alert
+                  pipeline: a node the router skips on 90% of alerts is idle 90%
+                  of the time. Replaces the literals 0.82 / 0.64 / 0.71 / 0.45.
+              ran: { type: integer }
+              ok: { type: integer }
+              failed: { type: integer }
+              skipped: { type: integer }
+              mean_duration_ms: { type: number }
+
+    OverviewPayload:
+      type: object
+      required: [total, by_severity, ticker]
+      properties:
+        total:
+          type: integer
+          description: Count over the ACTIVE FILTER SET, not over a client buffer.
+        by_severity:
+          type: object
+          description: 'Keys: critical, high, medium, low, unknown. Always all five.'
+          additionalProperties: { type: integer }
+        ticker:
+          type: [object, 'null']
+          description: >
+            The highest-severity alert in the filter set, most recent first
+            within that severity. Null when the set is empty — the top bar then
+            has nothing to rotate, which is the truthful state.
+          properties:
+            id: { type: string }
+            severity: { $ref: '#/components/schemas/Severity' }
+            signature: { type: string }
+            src_ip: { type: string }
+            dest_ip: { type: string }
+            timestamp: { type: string, format: date-time }
+        filters:
+          type: object
+          description: Echoed back so a reader can tell what the counts are OF.
+
+    JobRunPage:
+      type: object
+      required: [jobs, known_jobs]
+      properties:
+        jobs:
+          type: array
+          items: { $ref: '#/components/schemas/JobRun' }
+        known_jobs:
+          type: array
+          items: { type: string }
+
+    JobRun:
+      type: object
+      required: [id, job, status, trigger, duration_ms, started_at]
+      description: >
+        PLAN T14 — the receipt for one scheduled run. A job that aggregates and
+        discards is a defect; this row is what proves it did not.
+      properties:
+        id: { type: integer }
+        job: { type: string, examples: [metrics.sample, correlation.refresh] }
+        status: { type: string, enum: [ok, failed] }
+        trigger: { type: string, enum: [schedule, startup, manual] }
+        duration_ms: { type: number }
+        result:
+          type: [object, 'null']
+          description: >
+            What the run computed and wrote — counts, not a boolean. A run that
+            produced nothing says so with zeroes rather than with a null.
+        error:
+          type: [string, 'null']
+          description: The exception text, verbatim, when the run raised.
+        started_at: { type: string, format: date-time }
+
+    StreamCommand:
+      type: object
+      required: [type]
+      description: >
+        Client -> server over /ws/stream. Documented here because OpenAPI has no
+        WebSocket message channel.
+      properties:
+        type:
+          type: string
+          enum: [auth, pause, resume, config, presence]
+          description: >
+            `auth` — FE-2. MUST BE THE FIRST FRAME on every connection; carries
+            the JWT that used to sit in the query string. The server streams
+            nothing until it validates.
+            `pause` / `resume` — useAlertStream.js:64-65, driven by the top-bar
+            toggle. Already sent by the frozen frontend.
+            `config` — useAlertStream.js:66, exposed by the hook but never
+            called by any component today.
+            `presence` — FE-2, for presence-aware email (PLAN §8). Sent on
+            `visibilitychange`, and `active` immediately after `auth` on
+            connect.
+        token:
+          type: string
+          description: >
+            Present only on `auth`. The same JWT the HTTP calls send as a
+            Bearer token. PLAN §9: never logged.
+        speed:
+          type: number
+          description: Present only on `config`. Alerts per second.
+        state:
+          type: string
+          enum: [active, backgrounded]
+          description: >
+            Present only on `presence`. PLAN §8.2: a user is "watching" if ANY
+            of their connections reports `active`; a session whose last
+            heartbeat is older than the stale-presence window is treated as
+            away, so a crashed tab cannot permanently suppress that user's
+            email.
