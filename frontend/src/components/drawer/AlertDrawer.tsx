@@ -49,7 +49,7 @@ export function AlertDrawer({ alert, onClose }: AlertDrawerProps) {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-[560px] glass-panel-3d border-l border-edge/80 shadow-[0_0_8px_rgba(0,0,0,0.8)] flex flex-col metal-bevel"
+            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-[560px] bg-[#030712] border-l border-slate-800/80 shadow-[-10px_0_40px_rgba(0,0,0,0.85)] flex flex-col metal-bevel"
             role="dialog"
             aria-modal="true"
             aria-label={`Alert detail ${alert.id}`}

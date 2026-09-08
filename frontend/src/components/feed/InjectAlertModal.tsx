@@ -64,7 +64,9 @@ export function InjectAlertModal({ isOpen, onClose, onAlertInjected, onInjectCus
 
       try {
         const res = await api.ingestAlert(payload);
-        if (res?.id) alertId = res.id;
+        const resAny = res as any;
+        if (res?.alert_ids?.[0]) alertId = res.alert_ids[0];
+        else if (resAny?.id) alertId = resAny.id;
       } catch {
         // Backend offline / stand-in demo mode
         if (onInjectCustomAlert) {

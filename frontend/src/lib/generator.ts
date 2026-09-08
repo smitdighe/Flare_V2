@@ -137,8 +137,140 @@ export function generateAlertSummary(partial?: Partial<AlertSummary>): AlertSumm
   };
 }
 
+const MITRE_BY_ATTACK: Record<string, MitreTechnique[]> = {
+  ddos: [
+    {
+      id: 'T1498',
+      name: 'Network Denial of Service',
+      tactic: 'Impact',
+      url: 'https://attack.mitre.org/techniques/T1498/',
+      excerpt: 'Adversaries may perform Network Denial of Service attacks to degrade or block the availability of targeted resources by exhausting network bandwidth. This includes volumetric floods, often amplified and reflected through third-party servers, that saturate the link to the victim.',
+    },
+    {
+      id: 'T1499',
+      name: 'Endpoint Denial of Service',
+      tactic: 'Impact',
+      url: 'https://attack.mitre.org/techniques/T1499/',
+      excerpt: 'Adversaries may perform Endpoint Denial of Service attacks to degrade or block the availability of services to users by exhausting the system resources or application capacity of the endpoint. This includes application-layer floods, service exhaustion, and application exhaustion that overwhelm a spe',
+    },
+  ],
+  brute_force: [
+    {
+      id: 'T1110',
+      name: 'Brute Force',
+      tactic: 'Credential Access',
+      url: 'https://attack.mitre.org/techniques/T1110/',
+      excerpt: 'Adversaries may use brute force techniques to gain access to accounts by guessing credentials with high frequency attempts.',
+    },
+    {
+      id: 'T1110.001',
+      name: 'Password Guessing',
+      tactic: 'Credential Access',
+      url: 'https://attack.mitre.org/techniques/T1110/001/',
+      excerpt: 'Adversaries may attempt to guess passwords of valid accounts to authenticate and establish persistence.',
+    },
+  ],
+  web_attack: [
+    {
+      id: 'T1190',
+      name: 'Exploit Public-Facing Application',
+      tactic: 'Initial Access',
+      url: 'https://attack.mitre.org/techniques/T1190/',
+      excerpt: 'Adversaries may attempt to exploit a vulnerability in an Internet-facing computer or program using software, package, or service flaws.',
+    },
+    {
+      id: 'T1059',
+      name: 'Command and Scripting Interpreter',
+      tactic: 'Execution',
+      url: 'https://attack.mitre.org/techniques/T1059/',
+      excerpt: 'Adversaries may abuse command and script interpreters to execute commands, scripts, or binaries.',
+    },
+  ],
+  malware_c2: [
+    {
+      id: 'T1071',
+      name: 'Application Layer Protocol',
+      tactic: 'Command and Control',
+      url: 'https://attack.mitre.org/techniques/T1071/',
+      excerpt: 'Adversaries may communicate using application layer protocols to avoid detection/network filtering by blending in with existing traffic.',
+    },
+    {
+      id: 'T1573',
+      name: 'Encrypted Channel',
+      tactic: 'Command and Control',
+      url: 'https://attack.mitre.org/techniques/T1573/',
+      excerpt: 'Adversaries may employ a known, encryption algorithm to conceal command and control traffic.',
+    },
+  ],
+  recon: [
+    {
+      id: 'T1595',
+      name: 'Active Scanning',
+      tactic: 'Reconnaissance',
+      url: 'https://attack.mitre.org/techniques/T1595/',
+      excerpt: 'Adversaries may execute active reconnaissance scans to gather information about targeted infrastructure.',
+    },
+    {
+      id: 'T1046',
+      name: 'Network Service Discovery',
+      tactic: 'Discovery',
+      url: 'https://attack.mitre.org/techniques/T1046/',
+      excerpt: 'Adversaries may attempt to get a listing of services running on remote hosts.',
+    },
+  ],
+  port_scan: [
+    {
+      id: 'T1046',
+      name: 'Network Service Discovery',
+      tactic: 'Discovery',
+      url: 'https://attack.mitre.org/techniques/T1046/',
+      excerpt: 'Adversaries may attempt to get a listing of services running on remote hosts.',
+    },
+    {
+      id: 'T1040',
+      name: 'Network Sniffing',
+      tactic: 'Credential Access',
+      url: 'https://attack.mitre.org/techniques/T1040/',
+      excerpt: 'Adversaries may sniff network traffic to capture authentication credentials and probe open socket responses.',
+    },
+  ],
+  data_exfiltration: [
+    {
+      id: 'T1048',
+      name: 'Exfiltration Over Alternative Protocol',
+      tactic: 'Exfiltration',
+      url: 'https://attack.mitre.org/techniques/T1048/',
+      excerpt: 'Adversaries may steal data by exfiltrating it over an alternative protocol than the existing command and control channel.',
+    },
+    {
+      id: 'T1567',
+      name: 'Exfiltration Over Web Service',
+      tactic: 'Exfiltration',
+      url: 'https://attack.mitre.org/techniques/T1567/',
+      excerpt: 'Adversaries may use an existing, legitimate external Web service to exfiltrate data.',
+    },
+  ],
+  privilege_escalation: [
+    {
+      id: 'T1068',
+      name: 'Exploitation for Privilege Escalation',
+      tactic: 'Privilege Escalation',
+      url: 'https://attack.mitre.org/techniques/T1068/',
+      excerpt: 'Adversaries may exploit software vulnerabilities in an attempt to elevate privileges.',
+    },
+    {
+      id: 'T1078',
+      name: 'Valid Accounts',
+      tactic: 'Defense Evasion',
+      url: 'https://attack.mitre.org/techniques/T1078/',
+      excerpt: 'Adversaries may obtain and abuse credentials of existing accounts to gain higher clearance.',
+    },
+  ],
+};
+
 export function generateAlertDetail(summary?: AlertSummary): AlertDetail {
   const base = summary || generateAlertSummary();
+  const attackKey = String(base.attack_type || 'recon').toLowerCase();
 
   const iocs: IocVerdict[] = base.has_enrichment
     ? [
@@ -151,8 +283,8 @@ export function generateAlertDetail(summary?: AlertSummary): AlertDetail {
           sources: [
             {
               source: 'abuseipdb',
-              raw_score: (base.max_ioc_score ?? 45),
-              categories: [base.attack_type || 'recon'],
+              raw_score: base.max_ioc_score ?? 45,
+              categories: [attackKey],
               last_seen: new Date(Date.now() - 3600000 * 2).toISOString(),
               link: `https://www.abuseipdb.com/check/${base.src_ip}`,
             },
@@ -168,99 +300,85 @@ export function generateAlertDetail(summary?: AlertSummary): AlertDetail {
       ]
     : [];
 
-  const techniques: MitreTechnique[] = [
-    {
-      id: 'T1046',
-      name: 'Network Service Discovery',
-      tactic: 'Discovery',
-      url: 'https://attack.mitre.org/techniques/T1046/',
-      excerpt: 'Adversaries may attempt to get a listing of services running on remote hosts.',
-    },
-    {
-      id: 'T1110',
-      name: 'Brute Force',
-      tactic: 'Credential Access',
-      url: 'https://attack.mitre.org/techniques/T1110/',
-      excerpt: 'Adversaries may use brute force techniques to gain access to accounts.',
-    },
-  ];
+  const techniques: MitreTechnique[] = MITRE_BY_ATTACK[attackKey] || MITRE_BY_ATTACK.recon;
+  const techIds = techniques.map((t) => t.id).join(', ');
 
   const steps: RemediationStep[] = [
     {
       order: 1,
-      action: `Block source IP ${base.src_ip} at perimeter firewall`,
-      detail: `Apply ingress drop rule on edge router for IP ${base.src_ip} across all ports to prevent further probing.`,
-      urgency: base.severity === 'critical' || base.severity === 'high' ? 'immediate' : 'soon',
+      action: 'Contain the source',
+      detail: `Block the source address at the perimeter and drop active flows.`,
+      urgency: 'immediate',
     },
     {
       order: 2,
-      action: `Isolate target destination host ${base.dst_ip}`,
-      detail: `Isolate host ${base.dst_ip} via EDR endpoint agent to contain potential lateral movement.`,
-      urgency: base.severity === 'critical' ? 'immediate' : 'soon',
+      action: 'Preserve evidence',
+      detail: `Capture full packet data and host telemetry for the affected pair.`,
+      urgency: 'soon',
     },
     {
       order: 3,
-      action: 'Rotate compromised service credentials',
-      detail: 'Force password reset and invalidate current active API tokens for affected service accounts.',
+      action: 'Close the exposure',
+      detail: `Rotate any credentials reachable from the destination host and patch the exposed service.`,
       urgency: 'monitor',
     },
   ];
 
-  const remediation: Remediation | null = base.has_remediation
-    ? {
-        summary: `Immediate perimeter block recommended for malicious source IP ${base.src_ip} exhibiting ${base.attack_type} patterns.`,
-        steps,
-        techniques,
-        generated_at: new Date().toISOString(),
-        duration_ms: 1450,
-      }
-    : null;
+  const remediation: Remediation = {
+    summary: `Offline playbook for suspected ${attackKey}. Contain the source, preserve evidence, then close the exposure that allowed it.`,
+    steps,
+    techniques,
+    generated_at: new Date().toISOString(),
+    duration_ms: 1450,
+  };
+
+  const reasoning = `The flow is consistent with ${attackKey} activity and is triaged at ${base.severity || 'high'} severity. Reputation context comes only from the IOC verdicts supplied with this alert. Mapped ATT&CK coverage: ${techIds}. Generated offline by a deterministic analyzer, not a language model.`;
 
   const trace: TraceNode[] = [
     {
       node: 'classify',
       status: 'ok',
-      provider: 'groq:llama-3.1-8b-instant',
-      duration_ms: 240,
-      tokens_in: 180,
-      tokens_out: 42,
-      note: null,
+      provider: 'offline:offline-deterministic',
+      duration_ms: 0,
+      tokens_in: 921,
+      tokens_out: 32,
+      note: `offline heuristic: signature keywords indicate ${attackKey}`,
     },
     {
       node: 'enrich',
-      status: base.has_enrichment ? 'ok' : 'skipped',
-      provider: base.has_enrichment ? 'abuseipdb+virustotal' : null,
-      duration_ms: base.has_enrichment ? 1120 : 0,
+      status: 'ok',
+      provider: null,
+      duration_ms: 0,
       tokens_in: null,
       tokens_out: null,
-      note: base.has_enrichment ? null : "skipped: severity 'low' below threshold",
+      note: base.has_enrichment && base.max_ioc_score ? `IOC reputation score: ${base.max_ioc_score} / 100` : 'no public IOCs to enrich',
     },
     {
       node: 'retrieve',
-      status: base.has_enrichment ? 'ok' : 'skipped',
-      provider: base.has_enrichment ? 'chroma:mitre-attack-v14' : null,
-      duration_ms: base.has_enrichment ? 85 : 0,
+      status: 'ok',
+      provider: null,
+      duration_ms: 0,
       tokens_in: null,
       tokens_out: null,
-      note: base.has_enrichment ? null : "retrieval skipped: severity 'low' below threshold",
+      note: `retrieved ${techIds}`,
     },
     {
       node: 'reason',
-      status: base.has_remediation ? 'ok' : 'skipped',
-      provider: base.has_remediation ? 'gemini:gemini-flash-latest' : null,
-      duration_ms: base.has_remediation ? 1850 : 0,
-      tokens_in: 840,
-      tokens_out: 210,
-      note: base.has_remediation ? null : 'reasoning skipped',
+      status: 'ok',
+      provider: 'offline:offline-deterministic',
+      duration_ms: 0,
+      tokens_in: 606,
+      tokens_out: 66,
+      note: null,
     },
     {
       node: 'recommend',
-      status: base.has_remediation ? 'ok' : 'skipped',
-      provider: base.has_remediation ? 'gemini:gemini-flash-latest' : null,
-      duration_ms: base.has_remediation ? 620 : 0,
-      tokens_in: 320,
-      tokens_out: 140,
-      note: base.has_remediation ? null : 'recommendation skipped',
+      status: 'ok',
+      provider: 'offline:offline-deterministic',
+      duration_ms: 0,
+      tokens_in: 497,
+      tokens_out: 224,
+      note: '3 step(s), 2 technique(s); dropped 1 hallucinated/absent technique id(s)',
     },
   ];
 
@@ -284,16 +402,12 @@ export function generateAlertDetail(summary?: AlertSummary): AlertDetail {
         severity: base.severity === 'critical' ? 1 : base.severity === 'high' ? 2 : 3,
       },
     },
-    reasoning: base.has_remediation
-      ? `Analysis indicates ${base.src_ip} initiated high-frequency traffic against ${base.dst_ip}:${base.dst_port}. Threat intel confirms IOC reputation score of ${base.max_ioc_score || 75}/100. Recommend immediate containment.`
-      : null,
-    enrichment: base.has_enrichment
-      ? {
-          iocs,
-          enriched_at: new Date().toISOString(),
-          duration_ms: 1120,
-        }
-      : null,
+    reasoning: (base as any).reasoning || reasoning,
+    enrichment: {
+      iocs,
+      enriched_at: new Date().toISOString(),
+      duration_ms: 1120,
+    },
     remediation,
     trace,
     total_duration_ms: base.has_remediation ? 3915 : 240,

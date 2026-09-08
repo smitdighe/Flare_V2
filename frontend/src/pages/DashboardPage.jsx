@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import DashboardView from '../components/DashboardView.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import { useAlertStream } from '../hooks/useAlertStream.js';
+import { useAlertStream } from '../hooks/useAlertStream.legacy.js';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 

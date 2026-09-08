@@ -1,7 +1,8 @@
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import type { AlertDetail, AlertSummary, Severity } from '@/types';
-import { useAlertStream } from '@/hooks/useAlertStream';
+import { useAlertStream } from '@/hooks/useAlertStream.ts';
+import { generateAlertDetail } from '@/lib/generator';
 import { StatsStrip } from '@/components/stats/StatsStrip';
 import { LandingPage } from '@/components/ui/LandingPage';
 import { AlertFeed, type FeedFilters } from '@/components/feed/AlertFeed';
@@ -59,13 +60,11 @@ export default function App() {
   const handleSelectAlert = useCallback(
     async (summary: AlertSummary) => {
       setSelectedSummary(summary);
-      const detail = await fetchAlertDetail(summary.id);
-      if (detail) {
-        setSelectedDetail(detail);
-      } else {
-        // Fallback to basic object if detail not found
-        setSelectedDetail(summary as AlertDetail);
+      let detail = await fetchAlertDetail(summary.id);
+      if (!detail || !detail.remediation || !detail.trace || detail.trace.length === 0) {
+        detail = generateAlertDetail(detail || summary);
       }
+      setSelectedDetail(detail);
     },
     [fetchAlertDetail],
   );
