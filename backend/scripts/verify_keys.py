@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import json
 import os
 import sys
@@ -89,7 +90,9 @@ def _classify(status: int, body: str, headers: Any) -> tuple[str, str] | None:
         # quotaId when it is there — "20 per DAY per project" and "30 per
         # minute" call for completely different decisions.
         quota = ""
-        try:
+        # Best-effort: a body that is not the shape we expect is not an error
+        # here, it just means no quotaId to surface.
+        with contextlib.suppress(KeyError, IndexError, TypeError, ValueError):
             for violation in json.loads(body)["error"]["details"]:
                 if violation.get("@type", "").endswith("QuotaFailure"):
                     first = violation["violations"][0]
@@ -98,8 +101,6 @@ def _classify(status: int, body: str, headers: Any) -> tuple[str, str] | None:
                         f"limit={first.get('quotaValue')}"
                     )
                     break
-        except Exception:
-            pass
         return COOLING, f"429 rate limited (retry_after={after}){quota}"
 
     revoked = key_revocation_reason(status, body)
@@ -110,7 +111,9 @@ def _classify(status: int, body: str, headers: Any) -> tuple[str, str] | None:
     return None
 
 
-async def probe_groq(client: httpx.AsyncClient, label: str, secret: str, settings: Any) -> dict[str, Any]:
+async def probe_groq(
+    client: httpx.AsyncClient, label: str, secret: str, settings: Any
+) -> dict[str, Any]:
     started = time.perf_counter()
     try:
         response = await client.post(
@@ -155,7 +158,9 @@ async def probe_groq(client: httpx.AsyncClient, label: str, secret: str, setting
     return {"key_id": label, "state": LIVE, "detail": content[:40], "latency_ms": elapsed}
 
 
-async def probe_gemini(client: httpx.AsyncClient, label: str, secret: str, settings: Any) -> dict[str, Any]:
+async def probe_gemini(
+    client: httpx.AsyncClient, label: str, secret: str, settings: Any
+) -> dict[str, Any]:
     started = time.perf_counter()
     try:
         response = await client.post(
@@ -252,7 +257,7 @@ def main() -> int:
         for row in results:
             print(
                 f"{row['state']:<8} {row['key_id']:<18} "
-                f"{str(row.get('latency_ms', '-')):>6}ms  {row['detail'][:180]}"
+                f"{row.get('latency_ms', '-')!s:>6}ms  {row['detail'][:180]}"
             )
 
     dead = [r for r in results if r["state"] == DEAD]
