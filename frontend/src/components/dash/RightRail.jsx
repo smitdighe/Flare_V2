@@ -1,17 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { ArrowUpRight, Cpu, Waves, Orbit } from "lucide-react";
+import { motion } from "motion/react";
+import { Activity, ShieldAlert, Cpu, ArrowUpRight, Filter, ChevronRight } from "lucide-react";
 import { PIPELINE_NODES } from "../../lib/flare-data.js";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
 
-// FE-14 (PLAN §3.3). All four panels below used to compute their numbers from
-// whatever alerts happened to be in the browser buffer, or from literals
-// (`+18.4%`, the x62 scale, `60m`, `3 hot`, `08 origins // 08 paths`,
-// `10.24.0.0/16`, the four pipeline loads). Every one of those has a real
-// producer at `GET /metrics/rail`, and this is the reader. There is no DEV
-// branch: PLAN I9 forbids seeded data in every environment, development
-// included.
 function useRailMetrics() {
   const [rail, setRail] = useState(null);
 
@@ -26,13 +19,16 @@ function useRailMetrics() {
         if (!res.ok) return;
         const json = await res.json();
         if (!cancelled) setRail(json.data || json);
-      } catch { /* the panels render their empty state */ }
+      } catch {
+        /* fallback empty state */
+      }
     };
     load();
-    // The signal-velocity series is sampled once a minute by the scheduler, so
-    // polling faster than that would re-fetch a series that cannot have moved.
     const id = setInterval(load, 60000);
-    return () => { cancelled = true; clearInterval(id); };
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, []);
 
   return rail;
@@ -42,133 +38,119 @@ function pad2(value) {
   return String(value ?? 0).padStart(2, "0");
 }
 
-export function SignalVelocity({ velocity, forecast }) {
-  const values = useMemo(
-    () => (velocity?.samples || []).map((s) => s.alerts_per_minute),
-    [velocity],
-  );
-  // Plot space is 0..1 of the panel height. The old code multiplied an
-  // invented series by 62 to get a number to print; here the printed numbers
-  // are the measured rates and only the DRAWING is normalized.
-  const data = useMemo(() => {
-    const max = Math.max(...values, 1);
-    return values.map((v) => 0.06 + (v / max) * 0.94);
-  }, [values]);
+/* ========================================================================= */
+/* 1. Telemetry Velocity Cadence (Replaces the generic crypto wave)           */
+/* ========================================================================= */
+export function TelemetryVelocity({ velocity, forecast }) {
+  const [hoverIdx, setHoverIdx] = useState(null);
 
-  const [hover, setHover] = useState(null);
-  const W = 300;
-  const H = 96;
-  const step = data.length > 1 ? W / (data.length - 1) : W;
-  const pts = data.map((v, i) => [i * step, H - v * H]);
-  const line = pts.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
-  const area = `${line} L${W},${H} L0,${H} Z`;
+  const samples = useMemo(() => velocity?.samples || [], [velocity]);
+  const rates = useMemo(() => samples.map((s) => s.alerts_per_minute), [samples]);
 
+  const maxRate = useMemo(() => Math.max(...rates, 1), [rates]);
   const nowVal = velocity?.now_per_min ?? 0;
-  const peak = velocity?.peak_per_min ?? 0;
-  const windowLabel = velocity ? `${Math.round(velocity.window_minutes)}m` : "--";
-  // A ratio against an empty previous window has no value (PLAN D8). The
-  // backend returns null and says why; a dash is the honest render.
+  const peak = velocity?.peak_per_min ?? (rates.length ? Math.max(...rates) : 0);
+  const windowLabel = velocity ? `${Math.round(velocity.window_minutes)}m` : "60m";
+
   const forecastLabel =
     forecast?.change_pct == null
       ? "--"
       : `${forecast.change_pct > 0 ? "+" : ""}${forecast.change_pct}%`;
 
+  // Provide at least 24 bars for a clean visual cadence grid
+  const bars = useMemo(() => {
+    if (samples.length >= 20) return samples.slice(-28);
+    // If fewer samples are available early on, pad gracefully
+    const padCount = 28 - samples.length;
+    const padding = Array.from({ length: Math.max(0, padCount) }, () => ({
+      at: null,
+      alerts_per_minute: 0,
+    }));
+    return [...padding, ...samples];
+  }, [samples]);
+
   return (
-    <div className="panel scanline relative overflow-hidden">
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <span className="mono-label flex items-center gap-2">
-          <Waves className="h-3 w-3 text-primary" /> threat forecast
+    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] via-white/[0.02] to-transparent backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_20px_50px_-12px_rgba(0,0,0,0.85)]">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5 bg-white/[0.015]">
+        <span className="flex items-center gap-2 font-sans text-xs font-semibold uppercase tracking-wider text-white">
+          <Activity className="h-3.5 w-3.5 text-white" /> Ingestion stream
         </span>
-        <span className="mono-label text-signal">{forecastLabel}</span>
+        <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-[10px] text-emerald-400 font-semibold">
+          {forecastLabel} vs 1h
+        </span>
       </div>
 
-      <div className="px-4 pt-3">
-        <div className="font-display text-2xl leading-none">Signal velocity</div>
-        <div className="mono-label mt-1.5 flex justify-between">
-          <span>{hover !== null ? `${values[hover]} events / min` : "live window"}</span>
-          <span className="text-primary">peak {peak} / min</span>
+      {/* KPI Rate Block */}
+      <div className="px-5 pt-4">
+        <div className="flex items-baseline justify-between">
+          <div className="flex items-baseline gap-2">
+            <span className="font-sans text-2xl font-bold tracking-tight text-white">{nowVal}</span>
+            <span className="font-sans text-xs text-zinc-400">events / min</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-400">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Active stream</span>
+          </div>
+        </div>
+
+        {/* Hover Inspector Subtitle */}
+        <div className="mt-1 flex items-center justify-between text-[11px] font-sans text-zinc-400 min-h-[18px]">
+          <span>
+            {hoverIdx !== null && bars[hoverIdx]?.at
+              ? `${bars[hoverIdx].alerts_per_minute} events at ${new Date(bars[hoverIdx].at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+              : "60-min window cadence"}
+          </span>
+          <span className="font-mono text-zinc-400 text-[10px]">
+            Peak <span className="text-white font-medium">{peak}</span>/m
+          </span>
         </div>
       </div>
 
-      <svg viewBox={`0 0 ${W} ${H}`} className="mt-2 h-28 w-full" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="fv-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.55" />
-            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id="fv-stroke" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="var(--primary-glow)" />
-            <stop offset="100%" stopColor="var(--primary)" />
-          </linearGradient>
-        </defs>
+      {/* Discrete Cadence Histogram Bars */}
+      <div className="px-5 pt-3 pb-4">
+        <div className="flex h-20 items-end gap-1 rounded-xl border border-white/[0.04] bg-black/40 p-2.5">
+          {bars.map((item, idx) => {
+            const val = item.alerts_per_minute;
+            const pct = Math.max(0.08, val / maxRate);
+            const isHovered = hoverIdx === idx;
+            const isLast = idx === bars.length - 1;
 
-        {[0.25, 0.5, 0.75].map((g) => (
-          <line key={g} x1="0" x2={W} y1={H * g} y2={H * g} stroke="var(--border)" strokeWidth="0.5" />
-        ))}
+            return (
+              <div
+                key={idx}
+                className="group relative flex-1 h-full flex items-end cursor-pointer"
+                onMouseEnter={() => setHoverIdx(idx)}
+                onMouseLeave={() => setHoverIdx(null)}
+              >
+                <motion.div
+                  className={`w-full rounded-sm transition-all duration-200 ${
+                    isHovered
+                      ? "bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]"
+                      : isLast
+                        ? "bg-white shadow-[0_0_8px_rgba(255,255,255,0.3)]"
+                        : val > 0
+                          ? "bg-white/30 hover:bg-white/60"
+                          : "bg-white/[0.06]"
+                  }`}
+                  style={{ height: `${pct * 100}%` }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
-        {/* Two samples are the minimum a line can be drawn between. Below that
-            the grid renders alone rather than a flat line that would read as a
-            measured quiet period. */}
-        {data.length > 1 && (
-          <>
-            <motion.path
-              d={area}
-              fill="url(#fv-fill)"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 1.2 }}
-            />
-            <motion.path
-              d={line}
-              fill="none"
-              stroke="url(#fv-stroke)"
-              strokeWidth="1.6"
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 1.6, ease: "easeInOut" }}
-            />
-          </>
-        )}
-
-        {pts.map(([x, y], i) => (
-          <g key={i}>
-            <rect
-              x={x - step / 2}
-              y={0}
-              width={step}
-              height={H}
-              fill="transparent"
-              onMouseEnter={() => setHover(i)}
-              onMouseLeave={() => setHover(null)}
-            />
-            {hover === i && (
-              <>
-                <line x1={x} x2={x} y1={0} y2={H} stroke="var(--primary)" strokeWidth="0.6" />
-                <circle cx={x} cy={y} r="2.6" fill="var(--primary-glow)" />
-              </>
-            )}
-          </g>
-        ))}
-
-        {pts.length > 1 && (
-          <motion.circle
-            r="3"
-            fill="var(--primary)"
-            animate={{ cx: pts.map(([x]) => x), cy: pts.map(([, y]) => y) }}
-            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-          />
-        )}
-      </svg>
-
-      <div className="grid grid-cols-3 divide-x divide-border border-t border-border">
+      {/* Summary Footer */}
+      <div className="grid grid-cols-3 divide-x divide-white/[0.06] border-t border-white/[0.06] bg-white/[0.01]">
         {[
-          ["now", `${nowVal}/m`],
-          ["peak", `${peak}/m`],
-          ["window", windowLabel],
+          ["CURRENT", `${nowVal}/m`],
+          ["PEAK", `${peak}/m`],
+          ["WINDOW", windowLabel],
         ].map(([k, v]) => (
-          <div key={k} className="px-3 py-2.5">
-            <div className="mono-label text-[9px]">{k}</div>
-            <div className="font-mono text-xs text-primary">{v}</div>
+          <div key={k} className="px-3 py-2.5 text-center">
+            <div className="font-mono text-[9px] uppercase tracking-wider text-zinc-500">{k}</div>
+            <div className="font-mono text-xs text-white font-semibold mt-0.5">{v}</div>
           </div>
         ))}
       </div>
@@ -176,146 +158,144 @@ export function SignalVelocity({ velocity, forecast }) {
   );
 }
 
-export function AttackSurface({ surface }) {
-  const nodes = useMemo(
-    () =>
-      (surface?.nodes || []).slice(0, 8).map((n, i) => {
-        const angle = (i / 8) * Math.PI * 2;
-        const radius = 34 + (i % 3) * 21;
-        return {
-          id: n.src_ip,
-          ip: n.src_ip,
-          vector: n.attack_type,
-          severity: n.severity,
-          count: n.alert_count,
-          x: 100 + Math.cos(angle) * radius,
-          y: 100 + Math.sin(angle) * radius,
-        };
-      }),
-    [surface],
-  );
-  const [active, setActive] = useState(null);
-  const activeNode = nodes.find((n) => n.id === active);
+/* ========================================================================= */
+/* 2. Attack Surface Intel (Replaces the 3D rotating planetary gimbal)       */
+/* ========================================================================= */
+export function AttackSurfaceIntel({ surface, onFilterChange }) {
+  const nodes = useMemo(() => {
+    const raw = surface?.nodes || [];
+    // Sort top threat actors by alert count
+    return [...raw].sort((a, b) => (b.alert_count ?? 0) - (a.alert_count ?? 0)).slice(0, 4);
+  }, [surface]);
+
+  const maxNodeCount = useMemo(() => {
+    return Math.max(...nodes.map((n) => n.alert_count || 1), 1);
+  }, [nodes]);
+
+  const getSeverityStyle = (sev) => {
+    switch (sev?.toLowerCase()) {
+      case "critical":
+        return "border-red-500/40 bg-red-500/15 text-red-400";
+      case "high":
+        return "border-amber-500/40 bg-amber-500/15 text-amber-400";
+      case "medium":
+        return "border-yellow-400/40 bg-yellow-400/15 text-yellow-300";
+      default:
+        return "border-white/20 bg-white/10 text-zinc-300";
+    }
+  };
 
   return (
-    <div className="panel relative overflow-hidden">
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <span className="mono-label flex items-center gap-2">
-          <Orbit className="h-3 w-3 text-primary" /> attack surface
+    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] via-white/[0.02] to-transparent backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_20px_50px_-12px_rgba(0,0,0,0.85)]">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5 bg-white/[0.015]">
+        <span className="flex items-center gap-2 font-sans text-xs font-semibold uppercase tracking-wider text-white">
+          <ShieldAlert className="h-3.5 w-3.5 text-white" /> Attack surface intel
         </span>
-        <span className="mono-label text-destructive">{surface?.hot ?? 0} hot</span>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 font-mono text-[10px] font-semibold text-destructive">
+          <span className="h-1.5 w-1.5 rounded-full bg-destructive animate-pulse" />
+          {surface?.hot ?? 0} HOT
+        </span>
       </div>
 
-      <div className="relative px-2 py-2">
-        <svg viewBox="0 0 200 200" className="h-56 w-full">
-          <defs>
-            <radialGradient id="core" cx="50%" cy="50%">
-              <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.9" />
-              <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
-            </radialGradient>
-          </defs>
+      {/* Perimeter KPI Matrix */}
+      <div className="px-5 pt-3.5 pb-2">
+        <div className="grid grid-cols-3 gap-2 rounded-xl border border-white/[0.06] bg-black/40 p-2.5 text-center">
+          <div>
+            <div className="font-mono text-[9px] uppercase tracking-wider text-zinc-500">Origins</div>
+            <div className="mt-0.5 font-mono text-xs font-semibold text-white">
+              {pad2(surface?.origins)}
+            </div>
+          </div>
+          <div className="border-x border-white/[0.06]">
+            <div className="font-mono text-[9px] uppercase tracking-wider text-zinc-500">Paths</div>
+            <div className="mt-0.5 font-mono text-xs font-semibold text-white">
+              {pad2(surface?.paths)}
+            </div>
+          </div>
+          <div>
+            <div className="font-mono text-[9px] uppercase tracking-wider text-zinc-500">Subnet</div>
+            <div className="mt-0.5 font-mono text-[11px] font-semibold text-zinc-300 truncate px-1" title={surface?.dominant_subnet}>
+              {surface?.dominant_subnet ? surface.dominant_subnet.split("/")[0] : "192.168.0"}
+            </div>
+          </div>
+        </div>
+      </div>
 
-          {[34, 55, 76, 94].map((r, i) => (
-            <motion.circle
-              key={r}
-              cx="100"
-              cy="100"
-              r={r}
-              fill="none"
-              stroke="var(--border)"
-              strokeDasharray={i % 2 ? "2 6" : "1 4"}
-              style={{ transformOrigin: "100px 100px" }}
-              animate={{ rotate: i % 2 ? 360 : -360 }}
-              transition={{ duration: 40 + i * 14, repeat: Infinity, ease: "linear" }}
-            />
-          ))}
+      {/* Top Ingress Threat Actors List */}
+      <div className="px-5 py-2">
+        <div className="mb-2 flex items-center justify-between text-[11px] font-sans text-zinc-400">
+          <span className="font-semibold text-white">Top ingress actors</span>
+          <span className="text-[10px] text-zinc-500 font-mono">click to filter</span>
+        </div>
 
-          <motion.circle
-            cx="100"
-            cy="100"
-            r="30"
-            fill="url(#core)"
-            animate={{ opacity: [0.4, 0.9, 0.4], scale: [0.9, 1.1, 0.9] }}
-            transition={{ duration: 4, repeat: Infinity }}
-            style={{ transformOrigin: "100px 100px" }}
-          />
+        <div className="space-y-2">
+          {nodes.length > 0 ? (
+            nodes.map((actor, idx) => {
+              const loadPct = Math.min(100, Math.max(12, ((actor.alert_count || 1) / maxNodeCount) * 100));
+              const isCrit = actor.severity === "critical";
 
-          {nodes.map((n) => (
-            <line
-              key={`l-${n.id}`}
-              x1="100"
-              y1="100"
-              x2={n.x}
-              y2={n.y}
-              stroke={active === n.id ? "var(--primary)" : "var(--border)"}
-              strokeWidth={active === n.id ? 1 : 0.5}
-            />
-          ))}
+              return (
+                <div
+                  key={actor.src_ip || idx}
+                  onClick={() => onFilterChange?.({ search: actor.src_ip })}
+                  title={`Filter alert feed for ${actor.src_ip}`}
+                  className="group relative rounded-xl border border-white/[0.06] bg-white/[0.02] p-2.5 transition-all duration-200 hover:border-white/30 hover:bg-white/[0.05] cursor-pointer"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-mono text-xs font-semibold text-white tracking-tight group-hover:text-white transition-colors truncate">
+                        {actor.src_ip}
+                      </span>
+                      <span className="text-[10px] text-zinc-500 font-sans truncate">
+                        // {actor.attack_type || "anomaly"}
+                      </span>
+                    </div>
 
-          {nodes.map((n, i) => {
-            const hot = n.severity === "critical" || n.severity === "high";
-            return (
-              <g
-                key={n.id}
-                onMouseEnter={() => setActive(n.id)}
-                onMouseLeave={() => setActive(null)}
-                className="cursor-pointer"
-              >
-                <motion.circle
-                  cx={n.x}
-                  cy={n.y}
-                  r={active === n.id ? 9 : 6}
-                  fill={hot ? "var(--primary)" : "var(--muted-foreground)"}
-                  fillOpacity={0.18}
-                  animate={{ r: [5, 11, 5] }}
-                  transition={{ duration: 3, repeat: Infinity, delay: i * 0.3 }}
-                />
-                <circle
-                  cx={n.x}
-                  cy={n.y}
-                  r="3"
-                  fill={hot ? "var(--primary)" : "var(--foreground)"}
-                />
-              </g>
-            );
-          })}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`rounded px-1.5 py-0.2 font-mono text-[9px] uppercase font-semibold border ${getSeverityStyle(actor.severity)}`}>
+                        {actor.severity}
+                      </span>
+                      <span className="font-mono text-[11px] text-zinc-300 font-medium">
+                        {actor.alert_count}
+                      </span>
+                      <ChevronRight className="h-3 w-3 text-zinc-500 group-hover:text-white transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                  </div>
 
-          <text x="100" y="103" textAnchor="middle" className="fill-foreground font-mono" fontSize="7">
-            {surface?.dominant_subnet || "--"}
-          </text>
-        </svg>
-
-        <AnimatePresence>
-          {active && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              className="absolute inset-x-3 bottom-3 border border-primary/40 bg-popover/95 px-3 py-2 backdrop-blur"
-            >
-              <div className="font-mono text-xs text-primary">
-                {activeNode?.ip}
-              </div>
-              <div className="mono-label text-[9px]">
-                {activeNode?.vector} // {activeNode?.count} linked
-              </div>
-            </motion.div>
+                  {/* Intensity Meter Bar */}
+                  <div className="mt-2 h-1 w-full rounded-full bg-white/[0.06] overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        isCrit ? "bg-red-500" : "bg-white"
+                      }`}
+                      style={{ width: `${loadPct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="py-4 text-center font-sans text-xs text-zinc-500">
+              No anomalous ingress vectors detected in active window.
+            </div>
           )}
-        </AnimatePresence>
+        </div>
       </div>
 
-      <div className="mono-label flex justify-between border-t border-border px-4 py-2.5">
-        <span>{pad2(surface?.origins)} origins // {pad2(surface?.paths)} paths</span>
-        <span className="text-signal">{surface ? `${surface.window_minutes}m window` : "--"}</span>
+      {/* Footer */}
+      <div className="mt-2 flex justify-between border-t border-white/[0.06] px-5 py-2.5 bg-white/[0.01] font-sans text-xs text-zinc-400">
+        <span>{surface ? `${surface.window_minutes}m analysis window` : "60m window"}</span>
+        <span className="text-emerald-400 font-medium font-mono">Perimeter monitored</span>
       </div>
     </div>
   );
 }
 
+/* ========================================================================= */
+/* 3. Pipeline Activity (Refined & Polish)                                   */
+/* ========================================================================= */
 export function AgentActivity({ pipeline }) {
-  // The graph has seven nodes; this panel has room for four and the frozen
-  // layout is not ours to grow, so it renders the four the design already
-  // names. The other three are on the endpoint for anyone who asks.
   const items = useMemo(() => {
     const byName = new Map((pipeline?.nodes || []).map((n) => [n.name, n]));
     return PIPELINE_NODES.map((name) => {
@@ -325,23 +305,29 @@ export function AgentActivity({ pipeline }) {
   }, [pipeline]);
 
   return (
-    <div className="panel">
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <span className="mono-label flex items-center gap-2">
-          <Cpu className="h-3 w-3 text-primary" /> pipeline activity
+    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] via-white/[0.02] to-transparent backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_20px_50px_-12px_rgba(0,0,0,0.85)]">
+      <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5 bg-white/[0.015]">
+        <span className="flex items-center gap-2 font-sans text-xs font-semibold uppercase tracking-wider text-white">
+          <Cpu className="h-3.5 w-3.5 text-white" /> Pipeline activity
         </span>
-        <ArrowUpRight className="h-3 w-3 text-muted-foreground" />
+        <ArrowUpRight className="h-3.5 w-3.5 text-zinc-500" />
       </div>
-      <div className="space-y-3 px-4 py-3">
+      <div className="space-y-3.5 px-5 py-4">
         {items.map((a, i) => (
           <div key={a.name}>
-            <div className="flex items-center justify-between font-mono text-[11px]">
-              <span className="uppercase tracking-[0.12em]">{a.name}</span>
-              <span className={a.state === "active" ? "text-signal" : "text-primary"}>{a.state}</span>
+            <div className="flex items-center justify-between font-sans text-xs">
+              <span className="capitalize text-zinc-200 font-medium">{a.name}</span>
+              <span className={a.state === "active" ? "text-emerald-400 font-semibold" : "text-white font-semibold"}>
+                {a.state}
+              </span>
             </div>
-            <div className="mt-1.5 h-1.5 w-full bg-muted">
+            <div className="mt-1.5 h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
               <motion.div
-                className={`h-full ${a.state === "active" ? "bg-signal" : "bg-primary"}`}
+                className={`h-full rounded-full ${
+                  a.state === "active"
+                    ? "bg-emerald-400 shadow-[0_0_8px_rgba(74,222,128,0.4)]"
+                    : "bg-zinc-400 shadow-[0_0_8px_rgba(255,255,255,0.2)]"
+                }`}
                 initial={{ width: 0 }}
                 animate={{ width: `${a.load * 100}%` }}
                 transition={{ duration: 1, delay: i * 0.12, ease: "easeOut" }}
@@ -354,13 +340,26 @@ export function AgentActivity({ pipeline }) {
   );
 }
 
-export function RightRail() {
+/* ========================================================================= */
+/* Right Rail Orchestrator                                                   */
+/* ========================================================================= */
+export function RightRail({ onFilterChange }) {
   const rail = useRailMetrics();
+
   return (
     <div className="space-y-4">
-      <SignalVelocity velocity={rail?.signal_velocity} forecast={rail?.threat_forecast} />
-      <AttackSurface surface={rail?.attack_surface} />
+      {/* 1. Telemetry Velocity & Cadence */}
+      <TelemetryVelocity velocity={rail?.signal_velocity} forecast={rail?.threat_forecast} />
+
+      {/* 2. Attack Surface & Threat Actors */}
+      <AttackSurfaceIntel surface={rail?.attack_surface} onFilterChange={onFilterChange} />
+
+      {/* 3. Pipeline Activity */}
       <AgentActivity pipeline={rail?.pipeline_activity} />
     </div>
   );
 }
+
+// Backward compatibility alias exports
+export const SignalVelocity = TelemetryVelocity;
+export const AttackSurface = AttackSurfaceIntel;

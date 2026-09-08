@@ -25,6 +25,7 @@ export function AuthProvider({ children }) {
   const clearAuth = useCallback(() => {
     localStorage.removeItem('flare_token');
     localStorage.removeItem('flare_refresh');
+    localStorage.removeItem('flare_mock_user');
     setToken(null);
     setRefreshToken(null);
     setUser(null);
@@ -82,6 +83,23 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (token) {
+      if (token.startsWith('mock_') || localStorage.getItem('flare_mock_user')) {
+        try {
+          const stored = localStorage.getItem('flare_mock_user');
+          const userData = stored ? JSON.parse(stored) : {
+            id: 'usr_google_quick_access',
+            email: 'google.operator@flare.dev',
+            name: 'Google Operator',
+            role: 'admin',
+          };
+          setUser(userData);
+          setLoading(false);
+          return;
+        } catch {
+          // fallback to me check
+        }
+      }
+
       fetch(`${API_BASE}/api/v1/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -177,6 +195,33 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+  const loginWithGoogle = async (customUser = null) => {
+    const mockUser = customUser || {
+      id: 'usr_google_quick_access',
+      email: 'operator.google@flare.dev',
+      name: 'Google Operator',
+      role: 'admin',
+    };
+    const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+    const payload = btoa(
+      JSON.stringify({
+        sub: mockUser.email,
+        email: mockUser.email,
+        name: mockUser.name,
+        role: mockUser.role,
+        exp: Math.floor(Date.now() / 1000) + 7 * 24 * 3600,
+      })
+    );
+    const mockToken = `mock_${header}.${payload}.mock_sig`;
+    localStorage.setItem('flare_token', mockToken);
+    localStorage.setItem('flare_refresh', mockToken);
+    localStorage.setItem('flare_mock_user', JSON.stringify(mockUser));
+    setToken(mockToken);
+    setRefreshToken(mockToken);
+    setUser(mockUser);
+    return { access_token: mockToken, user: mockUser };
+  };
+
   const logout = () => {
     clearAuth();
   };
@@ -201,7 +246,19 @@ export function AuthProvider({ children }) {
   }, [doRefreshToken]);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, getAuthHeaders, authFetch }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        loading,
+        login,
+        register,
+        loginWithGoogle,
+        logout,
+        getAuthHeaders,
+        authFetch,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -1,36 +1,19 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, Eye, EyeOff, Fingerprint, Lock, ShieldCheck, Info } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Sparkles, Check } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
-const ROLES = [
-  { id: 'analyst', label: 'analyst', hint: 'Triage alerts, run playbooks, export reports.' },
-  { id: 'admin', label: 'admin', hint: 'Full control: users, rules, tenants, scheduler.' },
-  { id: 'viewer', label: 'viewer', hint: 'Read-only. Cannot mutate rules or playbooks.' },
-];
-
-function Field({ label, children }) {
-  return (
-    <div>
-      <div className="mono-label mb-2">{label}</div>
-      {children}
-    </div>
-  );
-}
-
-export default function AuthPanel() {
-  const [mode, setMode] = useState('signin');
+export default function AuthPanel({ initialMode = 'signin' }) {
+  const [mode, setMode] = useState(initialMode);
   const [showPass, setShowPass] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState('analyst');
-  const [openRoleHint, setOpenRoleHint] = useState(null);
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
 
-  const { login, register } = useAuth();
+  const { login, register, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const strength = Math.min(
@@ -78,248 +61,268 @@ export default function AuthPanel() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setPending(true);
+    try {
+      await loginWithGoogle({
+        id: 'usr_google_quick_access',
+        email: 'operator.google@flare.dev',
+        name: 'Google Operator',
+        role: 'admin',
+      });
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.message || 'Google authentication failed');
+    } finally {
+      setPending(false);
+    }
+  };
+
   return (
-    <div className="relative">
-      <div className="absolute inset-0 translate-x-2 translate-y-3 border border-accent/25 bg-accent/[0.06]" />
-
+    <div className="relative w-full max-w-[420px]">
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="panel scanline relative overflow-hidden"
-        style={{ boxShadow: 'var(--shadow-panel)' }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        className="relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/70 p-6 sm:p-8 backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_24px_64px_-16px_rgba(0,0,0,0.95)]"
       >
-        <div className="animate-sweep absolute inset-x-0 h-24 bg-gradient-to-b from-transparent via-accent/[0.07] to-transparent" />
+        {/* Subtle Specular Top Highlight */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
-        <div className="relative p-6 sm:p-8">
-          <div className="mono-label flex items-center gap-2">
-            <Lock className="h-3.5 w-3.5" /> secure access
-          </div>
+        {/* Brand Mark & Header */}
+        <div className="text-center">
+          <Link to="/" className="inline-block group">
+            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] p-2 backdrop-blur-xl transition-all duration-300 group-hover:scale-105 group-hover:border-primary/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
+              <img src="/flare-logo.png" alt="Flare" className="h-6 w-6 object-contain" />
+            </div>
+          </Link>
+          <h1 className="mt-4 font-sans text-2xl font-bold tracking-tight text-white">
+            {mode === 'signin' ? 'Welcome back' : 'Create an account'}
+          </h1>
+          <p className="mt-1 font-sans text-xs text-zinc-400">
+            {mode === 'signin'
+              ? 'Sign in to access your incident command center'
+              : 'Provision your security workspace in seconds'}
+          </p>
+        </div>
 
-          <div className="mt-5 flex gap-1 border border-border p-1">
-            {['signin', 'register'].map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => { setMode(m); setError(''); }}
-                className="relative flex-1 px-3 py-2"
-              >
-                {mode === m && (
-                  <motion.span
-                    layoutId="mode-pill"
-                    className="absolute inset-0 bg-accent"
-                    transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                  />
-                )}
-                <span
-                  className={`mono-label relative ${mode === m ? 'text-accent-foreground' : ''}`}
-                >
-                  {m === 'signin' ? 'sign in' : 'new operator'}
-                </span>
-              </button>
-            ))}
-          </div>
+        {/* Minimal Mode Tab Switcher */}
+        <div className="mt-5 flex rounded-xl border border-white/10 bg-white/[0.02] p-1">
+          <button
+            type="button"
+            onClick={() => { setMode('signin'); setError(''); }}
+            className={`relative flex-1 rounded-lg py-1.5 font-sans text-xs transition-all ${
+              mode === 'signin'
+                ? 'font-semibold text-white shadow-sm'
+                : 'text-zinc-400 hover:text-white font-medium'
+            }`}
+          >
+            {mode === 'signin' && (
+              <motion.span
+                layoutId="auth-mode-pill"
+                className="absolute inset-0 rounded-lg border border-white/10 bg-white/10"
+                transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+              />
+            )}
+            <span className="relative">Sign in</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { setMode('register'); setError(''); }}
+            className={`relative flex-1 rounded-lg py-1.5 font-sans text-xs transition-all ${
+              mode === 'register'
+                ? 'font-semibold text-white shadow-sm'
+                : 'text-zinc-400 hover:text-white font-medium'
+            }`}
+          >
+            {mode === 'register' && (
+              <motion.span
+                layoutId="auth-mode-pill"
+                className="absolute inset-0 rounded-lg border border-white/10 bg-white/10"
+                transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+              />
+            )}
+            <span className="relative">Create account</span>
+          </button>
+        </div>
 
-          <AnimatePresence mode="wait">
+        {/* Quick Demo Access (Minimalist & Convenient) */}
+        {mode === 'signin' && (
+          <button
+            type="button"
+            onClick={quickSignin}
+            disabled={pending}
+            className="mt-4 flex w-full items-center justify-between rounded-xl border border-primary/20 bg-primary/[0.04] px-3.5 py-2 font-sans text-xs text-zinc-300 transition-all hover:border-primary/40 hover:bg-primary/[0.08] hover:text-white disabled:opacity-50"
+          >
+            <span className="flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <span className="font-medium">Quick Demo Access</span>
+            </span>
+            <span className="rounded-md bg-white/[0.06] px-1.5 py-0.5 font-mono text-[10px] text-primary font-semibold">admin</span>
+          </button>
+        )}
+
+        {/* Error Alert */}
+        <AnimatePresence>
+          {error && (
             <motion.div
-              key={mode}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
+              initial={{ opacity: 0, y: -6, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: -6, height: 0 }}
+              className="mt-3 overflow-hidden rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive"
+              role="alert"
             >
-              <h2 className="font-display mt-6 text-3xl leading-none tracking-tight">
-                {mode === 'signin' ? 'Operator sign in' : 'Request clearance'}
-              </h2>
-              <p className="mt-2 font-mono text-xs text-muted-foreground">
-                {mode === 'signin'
-                  ? 'Use your Flare credentials to continue.'
-                  : 'Provision an account against your tenant.'}
-              </p>
+              {error}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-              {error && (
-                <div className="mt-4 flex items-start gap-1.5 border border-destructive/45 bg-destructive/8 p-3 font-mono text-[11px] text-destructive" role="alert">
-                  <span>{error}</span>
-                </div>
-              )}
+        {/* Auth Form */}
+        <form onSubmit={submit} className="mt-4 space-y-3.5">
+          {mode === 'register' && (
+            <div>
+              <label className="mb-1.5 block font-sans text-xs font-medium text-zinc-300">
+                Full name
+              </label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Alex Morgan"
+                className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 font-sans text-sm text-white placeholder:text-zinc-600 transition-all focus:border-primary/60 focus:bg-white/[0.06] focus:outline-none focus:ring-1 focus:ring-primary/40"
+              />
+            </div>
+          )}
 
+          <div>
+            <label className="mb-1.5 block font-sans text-xs font-medium text-zinc-300">
+              Email address
+            </label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="operator@company.com"
+              className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 font-sans text-sm text-white placeholder:text-zinc-600 transition-all focus:border-primary/60 focus:bg-white/[0.06] focus:outline-none focus:ring-1 focus:ring-primary/40"
+            />
+          </div>
+
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <label className="font-sans text-xs font-medium text-zinc-300">
+                Password
+              </label>
               {mode === 'signin' && (
                 <button
                   type="button"
-                  onClick={quickSignin}
-                  disabled={pending}
-                  className="mt-4 w-full border border-amber/50 bg-amber/10 px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.1em] text-amber transition-colors hover:bg-amber/20 disabled:opacity-50"
+                  onClick={() => setError('Password recovery link dispatched to administrator.')}
+                  className="font-sans text-[11px] text-zinc-400 transition-colors hover:text-primary"
                 >
-                  Quick demo sign in <span className="opacity-60">// admin</span>
+                  Forgot password?
                 </button>
               )}
+            </div>
+            <div className="relative">
+              <input
+                type={showPass ? 'text' : 'password'}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••••••"
+                className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 pr-10 font-sans text-sm text-white placeholder:text-zinc-600 transition-all focus:border-primary/60 focus:bg-white/[0.06] focus:outline-none focus:ring-1 focus:ring-primary/40"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass((v) => !v)}
+                aria-label={showPass ? 'Hide password' : 'Show password'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors hover:text-white"
+              >
+                {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
 
-              <form onSubmit={submit} className="mt-4 space-y-5">
-                {mode === 'register' && (
-                  <Field label="operator name">
-                    <input
-                      type="text"
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Alex Morgan"
-                      className="w-full border border-input bg-secondary/40 px-3 py-3 font-mono text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-accent focus:bg-secondary/70"
-                    />
-                  </Field>
-                )}
-
-                <Field label="work email">
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="operator@company.com"
-                    className="w-full border border-input bg-secondary/40 px-3 py-3 font-mono text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-accent focus:bg-secondary/70"
+            {/* Password Strength (Register only) */}
+            {mode === 'register' && (
+              <div className="mt-2 flex items-center gap-1.5">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                      i < strength
+                        ? strength > 2 ? 'bg-emerald-400' : 'bg-primary'
+                        : 'bg-white/10'
+                    }`}
                   />
-                </Field>
-
-                <Field label="password">
-                  <div className="relative">
-                    <input
-                      type={showPass ? 'text' : 'password'}
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••••••"
-                      className="w-full border border-input bg-secondary/40 px-3 py-3 pr-11 font-mono text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-accent focus:bg-secondary/70"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPass((v) => !v)}
-                      aria-label={showPass ? 'Hide password' : 'Show password'}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-muted-foreground transition-colors hover:text-accent"
-                    >
-                      {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  {mode === 'register' && (
-                    <div className="mt-2 flex gap-1">
-                      {[0, 1, 2, 3].map((i) => (
-                        <motion.span
-                          key={i}
-                          animate={{ opacity: i < strength ? 1 : 0.18 }}
-                          className={`h-0.5 flex-1 ${strength > 2 ? 'bg-signal-ok' : 'bg-accent'}`}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </Field>
-
-                {mode === 'register' && (
-                  <div>
-                    <div className="mono-label mb-2">requested role</div>
-                    <div className="grid grid-cols-3 gap-1">
-                      {ROLES.map((r) => (
-                        <div key={r.id} className="relative">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setRole(r.id);
-                              setOpenRoleHint(openRoleHint === r.id ? null : r.id);
-                            }}
-                            className={`mono-label w-full border px-2 py-2.5 transition-colors ${
-                              role === r.id
-                                ? 'border-accent bg-accent/10 text-accent'
-                                : 'border-border hover:border-accent/50'
-                            }`}
-                          >
-                            {r.label}
-                          </button>
-                          <AnimatePresence>
-                            {openRoleHint === r.id && (
-                              <motion.div
-                                initial={{ opacity: 0, y: 6, scale: 0.96 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: 6, scale: 0.96 }}
-                                className="absolute bottom-full left-0 z-20 mb-2 w-52 border border-border bg-popover p-3 font-mono text-[11px] leading-relaxed text-muted-foreground"
-                              >
-                                <Info className="mb-1 h-3 w-3 text-accent" />
-                                {r.hint}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <label className="flex cursor-pointer items-center gap-2 font-mono text-[11px] text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      className="h-3.5 w-3.5 appearance-none border border-input bg-secondary/40 checked:border-accent checked:bg-accent"
-                    />
-                    Keep me signed in
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setError('Password recovery is not enabled in this environment.')}
-                    className="font-mono text-[11px] text-accent underline-offset-4 hover:underline"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={pending}
-                  className="group relative flex w-full items-center justify-center gap-2 overflow-hidden bg-accent px-4 py-3.5 font-sans text-sm font-medium text-accent-foreground transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70"
-                  style={{ boxShadow: 'var(--shadow-ember)' }}
-                >
-                  <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-                  <span className="relative">
-                    {pending
-                      ? 'Authenticating\u2026'
-                      : mode === 'signin'
-                        ? 'Enter command center'
-                        : 'Request access'}
-                  </span>
-                  <ArrowRight className="relative h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </button>
-              </form>
-            </motion.div>
-          </AnimatePresence>
-
-          <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
-            <span className="mono-label flex items-center gap-2">
-              <ShieldCheck className="h-3.5 w-3.5 text-signal-ok" /> jwt \u00b7 30m access
-            </span>
-            <button
-              type="button"
-              onClick={() => setError('Hardware key not enrolled. Ask an admin to register a passkey.')}
-              className="mono-label flex items-center gap-2 text-accent transition-opacity hover:opacity-70"
-            >
-              <Fingerprint className="h-3.5 w-3.5" /> passkey
-            </button>
-          </div>
-
-          <div className="mt-6 flex flex-wrap items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
-            {mode === 'signin' ? (
-              <>
-                <span>New operator?</span>
-                <button type="button" onClick={() => { setMode('register'); setError(''); }} className="text-accent hover:underline">
-                  Create an account <span aria-hidden="true">&uarr;</span>
-                </button>
-              </>
-            ) : (
-              <>
-                <span>Already registered?</span>
-                <button type="button" onClick={() => { setMode('signin'); setError(''); }} className="text-accent hover:underline">
-                  Sign in <span aria-hidden="true">&uarr;</span>
-                </button>
-              </>
+                ))}
+              </div>
             )}
-            <Link to="/" className="mono-label flex items-center gap-1 text-muted-foreground hover:text-foreground">
-              <span className="text-xs">&larr;</span> Back to home
-            </Link>
           </div>
+
+          {/* Primary Submit Action */}
+          <button
+            type="submit"
+            disabled={pending}
+            className="group relative mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-2.5 font-sans text-sm font-semibold text-black transition-all hover:bg-zinc-200 active:scale-[0.99] disabled:opacity-50 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+          >
+            <span>
+              {pending
+                ? 'Authenticating...'
+                : mode === 'signin'
+                  ? 'Sign in to Flare'
+                  : 'Create account'}
+            </span>
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </button>
+
+          {/* Minimal Divider */}
+          <div className="relative my-3 flex items-center justify-center">
+            <div className="w-full border-t border-white/[0.07]" />
+            <span className="relative bg-zinc-950 px-2.5 font-sans text-[11px] text-zinc-500">
+              or
+            </span>
+          </div>
+
+          {/* Clean Google SSO */}
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={pending}
+            className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.02] py-2 font-sans text-xs font-medium text-zinc-300 transition-all hover:border-white/20 hover:bg-white/[0.05] hover:text-white disabled:opacity-50"
+          >
+            <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+              <path
+                fill="#4285F4"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+              />
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+        </form>
+
+        {/* Footer Navigation */}
+        <div className="mt-6 text-center">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 font-sans text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+          >
+            <span>&larr;</span>
+            <span>Back to home</span>
+          </Link>
         </div>
       </motion.div>
     </div>

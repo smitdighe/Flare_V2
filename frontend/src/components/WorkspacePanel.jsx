@@ -4,6 +4,9 @@ import AnimatedNumber from './AnimatedNumber.jsx';
 import StatusDot from './StatusDot.jsx';
 import AlertTable from './AlertTable.jsx';
 import FilterStrip from './FilterStrip.jsx';
+import SettingsPanel from './dash/SettingsPanel.jsx';
+import CyberSelect from './CyberSelect.jsx';
+import { Radio } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
@@ -279,17 +282,27 @@ function AuditLogsPanel() {
       </div>
 
       <div className="flex flex-wrap gap-2 border-b border-line px-4 py-3">
-        <select value={actionFilter} onChange={(e) => { setActionFilter(e.target.value); setOffset(0); }} className="border border-line-strong bg-ink-900 px-2 py-1.5 font-mono-ui text-[10px] text-paper">
-          <option value="">All actions</option>
-          {uniqueActions.map((a) => <option key={a} value={a}>{a}</option>)}
-        </select>
-        <select value={resourceFilter} onChange={(e) => { setResourceFilter(e.target.value); setOffset(0); }} className="border border-line-strong bg-ink-900 px-2 py-1.5 font-mono-ui text-[10px] text-paper">
-          <option value="">All resources</option>
-          <option value="rule">rule</option>
-          <option value="playbook">playbook</option>
-          <option value="user">user</option>
-          <option value="alert">alert</option>
-        </select>
+        <CyberSelect
+          prefix="ACTION"
+          value={actionFilter}
+          onChange={(val) => { setActionFilter(val); setOffset(0); }}
+          options={[
+            { value: '', label: 'ALL ACTIONS' },
+            ...uniqueActions.map((a) => ({ value: a, label: a })),
+          ]}
+        />
+        <CyberSelect
+          prefix="RESOURCE"
+          value={resourceFilter}
+          onChange={(val) => { setResourceFilter(val); setOffset(0); }}
+          options={[
+            { value: '', label: 'ALL RESOURCES' },
+            { value: 'rule', label: 'RULE' },
+            { value: 'playbook', label: 'PLAYBOOK' },
+            { value: 'user', label: 'USER' },
+            { value: 'alert', label: 'ALERT' },
+          ]}
+        />
       </div>
 
       {loading ? (
@@ -428,11 +441,11 @@ function EvalPanel() {
         </div>
         <div className="metric-block border border-line-strong p-4">
           <div className="font-mono-ui text-[9px] text-ash-dark">ATTACK TYPE ACCURACY</div>
-          <div className="mt-2 font-mono-ui text-3xl text-cyan"><AnimatedNumber value={evalData?.attack_type_accuracy || 0} decimals={2} /></div>
+          <div className="mt-2 font-mono-ui text-3xl text-white"><AnimatedNumber value={evalData?.attack_type_accuracy || 0} decimals={2} /></div>
         </div>
         <div className="metric-block border border-line-strong p-4">
           <div className="font-mono-ui text-[9px] text-ash-dark">AVG LATENCY</div>
-          <div className="mt-2 font-mono-ui text-3xl text-cyan"><AnimatedNumber value={avgLatency} suffix="ms" decimals={0} /></div>
+          <div className="mt-2 font-mono-ui text-3xl text-white"><AnimatedNumber value={avgLatency} suffix="ms" decimals={0} /></div>
         </div>
         <div className="metric-block border border-line-strong p-4">
           <div className="font-mono-ui text-[9px] text-ash-dark">HIGH PRECISION</div>
@@ -583,13 +596,14 @@ function CorrelatedPanel({ onFilterChange }) {
 }
 
 function SeverityChart({ alerts }) {
-  const counts = { high: 0, medium: 0, low: 0 };
+  const counts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
   alerts.forEach((a) => { if (counts[a.severity] !== undefined) counts[a.severity] += 1; });
   const total = alerts.length || 1;
   const segments = [
-    { label: 'HIGH', count: counts.high, color: '#e94560', pct: (counts.high / total) * 100 },
-    { label: 'MED', count: counts.medium, color: '#f59e0b', pct: (counts.medium / total) * 100 },
-    { label: 'LOW', count: counts.low, color: '#30d158', pct: (counts.low / total) * 100 },
+    { label: 'CRIT', count: counts.critical, color: '#ef4444', pct: (counts.critical / total) * 100 },
+    { label: 'HIGH', count: counts.high, color: '#f59e0b', pct: (counts.high / total) * 100 },
+    { label: 'MED', count: counts.medium, color: '#eab308', pct: (counts.medium / total) * 100 },
+    { label: 'LOW', count: counts.low, color: '#38bdf8', pct: (counts.low / total) * 100 },
   ];
 
   let offset = 0;
@@ -764,18 +778,28 @@ function RulesPanel() {
             className="w-full border border-line-strong bg-ink-900 px-3 py-2 font-mono-ui text-[11px] text-paper outline-none"
           />
           <div className="grid grid-cols-3 gap-2">
-            <select value={form.conditions.conditions[0].field} onChange={(e) => setForm({ ...form, conditions: { ...form.conditions, conditions: [{ ...form.conditions.conditions[0], field: e.target.value }] } })} className="border border-line-strong bg-ink-900 px-2 py-2 font-mono-ui text-[10px] text-paper">
-              <option value="severity">Severity</option>
-              <option value="attack_type">Attack Type</option>
-              <option value="src_ip">Source IP</option>
-              <option value="dest_port">Dest Port</option>
-            </select>
-            <select value={form.conditions.conditions[0].operator} onChange={(e) => setForm({ ...form, conditions: { ...form.conditions, conditions: [{ ...form.conditions.conditions[0], operator: e.target.value }] } })} className="border border-line-strong bg-ink-900 px-2 py-2 font-mono-ui text-[10px] text-paper">
-              <option value="equals">Equals</option>
-              <option value="contains">Contains</option>
-              <option value="not_equals">Not Equals</option>
-              <option value="greater_than">Greater Than</option>
-            </select>
+            <CyberSelect
+              prefix="FIELD"
+              value={form.conditions.conditions[0].field}
+              onChange={(val) => setForm({ ...form, conditions: { ...form.conditions, conditions: [{ ...form.conditions.conditions[0], field: val }] } })}
+              options={[
+                { value: 'severity', label: 'SEVERITY' },
+                { value: 'attack_type', label: 'ATTACK TYPE' },
+                { value: 'src_ip', label: 'SOURCE IP' },
+                { value: 'dest_port', label: 'DEST PORT' },
+              ]}
+            />
+            <CyberSelect
+              prefix="OP"
+              value={form.conditions.conditions[0].operator}
+              onChange={(val) => setForm({ ...form, conditions: { ...form.conditions, conditions: [{ ...form.conditions.conditions[0], operator: val }] } })}
+              options={[
+                { value: 'equals', label: 'EQUALS' },
+                { value: 'contains', label: 'CONTAINS' },
+                { value: 'not_equals', label: 'NOT EQUALS' },
+                { value: 'greater_than', label: 'GREATER THAN' },
+              ]}
+            />
             <input
               value={form.conditions.conditions[0].value}
               onChange={(e) => setForm({ ...form, conditions: { ...form.conditions, conditions: [{ ...form.conditions.conditions[0], value: e.target.value }] } })}
@@ -947,13 +971,18 @@ function PlaybooksPanel({ selected }) {
           <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Description" className="w-full border border-line-strong bg-ink-900 px-3 py-2 font-mono-ui text-[11px] text-paper outline-none" />
           <div className="grid grid-cols-2 gap-2">
             <input value={form.alert_type} onChange={(e) => setForm({ ...form, alert_type: e.target.value })} placeholder="Alert type (e.g. ddos)" className="border border-line-strong bg-ink-900 px-2 py-2 font-mono-ui text-[10px] text-paper outline-none" />
-            <select value={form.severity_threshold} onChange={(e) => setForm({ ...form, severity_threshold: e.target.value })} className="border border-line-strong bg-ink-900 px-2 py-2 font-mono-ui text-[10px] text-paper">
-              <option value="">Any severity</option>
-              <option value="low">low</option>
-              <option value="medium">medium</option>
-              <option value="high">high</option>
-              <option value="critical">critical</option>
-            </select>
+            <CyberSelect
+              prefix="THRESHOLD"
+              value={form.severity_threshold}
+              onChange={(val) => setForm({ ...form, severity_threshold: val })}
+              options={[
+                { value: '', label: 'ANY SEVERITY' },
+                { value: 'low', label: 'LOW' },
+                { value: 'medium', label: 'MEDIUM' },
+                { value: 'high', label: 'HIGH' },
+                { value: 'critical', label: 'CRITICAL' },
+              ]}
+            />
           </div>
           <div className="space-y-2">
             {form.steps.map((step, i) => (
@@ -1098,16 +1127,27 @@ function NotificationsPanel() {
       </div>
 
       <div className="border-b border-line p-4">
-        <div className="flex gap-2">
-          <select value={channel} onChange={(e) => setChannel(e.target.value)} className="border border-line-strong bg-ink-900 px-2 py-2 font-mono-ui text-[10px] text-paper">
-            <option value="email">Email</option>
-            <option value="slack">Slack</option>
-          </select>
-          <select value={eventType} onChange={(e) => setEventType(e.target.value)} className="flex-1 border border-line-strong bg-ink-900 px-2 py-2 font-mono-ui text-[10px] text-paper">
-            <option value="alert.high_severity">High Severity Alert</option>
-            <option value="rule.matched">Rule Matched</option>
-            <option value="export.ready">Export Ready</option>
-          </select>
+        <div className="flex flex-wrap gap-2">
+          <CyberSelect
+            prefix="CHANNEL"
+            value={channel}
+            onChange={(val) => setChannel(val)}
+            options={[
+              { value: 'email', label: 'EMAIL' },
+              { value: 'slack', label: 'SLACK' },
+            ]}
+          />
+          <CyberSelect
+            prefix="EVENT"
+            value={eventType}
+            onChange={(val) => setEventType(val)}
+            className="flex-1"
+            options={[
+              { value: 'alert.high_severity', label: 'HIGH SEVERITY ALERT' },
+              { value: 'rule.matched', label: 'RULE MATCHED' },
+              { value: 'export.ready', label: 'EXPORT READY' },
+            ]}
+          />
           <button type="button" onClick={handleAdd} className="bg-amber/20 border border-amber/40 px-3 py-2 font-mono-ui text-[10px] text-amber hover:bg-amber/30">Add</button>
         </div>
       </div>
@@ -1141,18 +1181,36 @@ function NotificationsPanel() {
   );
 }
 
-export default function WorkspacePanel({ section, alerts, filteredAlerts, selected, onSelect, filters, onFilterChange, density, onDensityChange, onAddAlert }) {
+export default function WorkspacePanel({ section, alerts, filteredAlerts, selected, onSelect, filters, onFilterChange, density, onDensityChange, onAddAlert, onNavigate }) {
   if (section === 'overview' || section === 'feed') {
     return (
-      <section className="dashboard-panel min-w-0">
-        <div className="flex items-center justify-between border-b border-line-strong px-4 py-3">
-          <div>
-            <div className="eyebrow text-ash-dark">Priority queue // {String(filteredAlerts.length).padStart(3, '0')} visible</div>
-            <h2 className="mt-1 text-base font-semibold text-paper">Live alert feed</h2>
+      <section className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] via-white/[0.02] to-transparent backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_20px_50px_-12px_rgba(0,0,0,0.85)] overflow-hidden min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] bg-white/[0.015] px-6 py-4">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary shadow-[0_0_14px_rgba(56,189,248,0.18)]">
+              <Radio className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h2 className="font-sans text-base font-semibold text-white tracking-tight">Live alert feed</h2>
+                <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-[10px] font-mono text-zinc-400">
+                  {String(filteredAlerts.length).padStart(3, '0')} visible
+                </span>
+              </div>
+              <div className="text-xs text-zinc-500 font-sans mt-0.5">Priority queue / active security stream</div>
+            </div>
           </div>
-          <div className="hidden items-center gap-4 font-mono-ui text-[9px] uppercase tracking-[0.08em] text-ash-dark sm:flex">
-            <span><span className="text-amber">J/K</span> navigate</span>
-            <span><span className="text-amber">ENTER</span> inspect</span>
+          <div className="hidden items-center gap-3 font-sans text-xs text-zinc-500 sm:flex">
+            <span className="flex items-center gap-1.5">
+              <kbd className="rounded-md border border-white/10 bg-white/[0.06] px-1.5 py-0.5 font-mono text-[10px] text-zinc-300 shadow-sm">J</kbd>
+              <kbd className="rounded-md border border-white/10 bg-white/[0.06] px-1.5 py-0.5 font-mono text-[10px] text-zinc-300 shadow-sm">K</kbd>
+              <span>navigate</span>
+            </span>
+            <span className="text-white/10">|</span>
+            <span className="flex items-center gap-1.5">
+              <kbd className="rounded-md border border-white/10 bg-white/[0.06] px-2 py-0.5 font-mono text-[10px] text-zinc-300 shadow-sm">↵ ENTER</kbd>
+              <span>inspect</span>
+            </span>
           </div>
         </div>
         <FilterStrip
@@ -1184,5 +1242,6 @@ export default function WorkspacePanel({ section, alerts, filteredAlerts, select
   if (section === 'playbooks') return <PlaybooksPanel selected={selected} />;
   if (section === 'notifications') return <NotificationsPanel />;
   if (section === 'export') return <ExportPanel filters={filters} />;
+  if (section === 'settings') return <SettingsPanel density={density} onDensityChange={onDensityChange} onNavigate={onNavigate} />;
   return null;
 }

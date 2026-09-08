@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DashboardView from '../components/DashboardView.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useAlertStream } from '../hooks/useAlertStream.js';
@@ -17,13 +18,19 @@ const ALERT_PAGE_SIZE = 50;
 
 export default function DashboardPage() {
   const { token, logout } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [alerts, setAlerts] = useState([]);
   const [selected, setSelected] = useState(null);
   const [filters, setFilters] = useState({});
-  const [activeSection, setActiveSection] = useState('overview');
+  const [activeSection, setActiveSection] = useState(() => searchParams.get('section') || 'overview');
   const [paused, setPaused] = useState(false);
   const [density, setDensity] = useState('comfortable');
   const [useWebSocket, setUseWebSocket] = useState(true);
+
+  useEffect(() => {
+    const urlSection = searchParams.get('section') || 'overview';
+    setActiveSection(urlSection);
+  }, [searchParams]);
 
   const updateFilters = useCallback((next) => {
     setFilters((current) => ({ ...current, ...next }));
@@ -126,7 +133,8 @@ export default function DashboardPage() {
   const handleNavigate = useCallback((section) => {
     setActiveSection(section);
     setSelected(null);
-  }, []);
+    setSearchParams(section === 'overview' ? {} : { section });
+  }, [setSearchParams]);
 
   return (
     <DashboardView

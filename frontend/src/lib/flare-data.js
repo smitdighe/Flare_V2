@@ -3,6 +3,7 @@ export const SEVERITY_STYLES = {
   high: { text: "text-primary", bg: "bg-primary/15", ring: "border-primary/50" },
   medium: { text: "text-primary-glow", bg: "bg-primary-glow/10", ring: "border-primary-glow/40" },
   low: { text: "text-signal", bg: "bg-signal/10", ring: "border-signal/40" },
+  info: { text: "text-sky-400", bg: "bg-sky-400/15", ring: "border-sky-400/40" },
   unknown: { text: "text-muted-foreground", bg: "bg-muted", ring: "border-border" },
 };
 
@@ -18,6 +19,7 @@ export const SECTIONS = [
   { slug: "playbooks", label: "playbooks" },
   { slug: "notifications", label: "notifications" },
   { slug: "export", label: "export" },
+  { slug: "settings", label: "settings" },
 ];
 
 // FE-12 (PLAN §3.3, I9). These are the graph's real node names, in the graph's
